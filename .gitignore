@@ -1,0 +1,27 @@
+# Build
+bin/
+obj/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# Rider / JetBrains
+.idea/
+
+# VS Code
+.vscode/
+
+# Banco local / dados persistentes
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+
+# Docker temporários
+**/bin/
+**/obj/

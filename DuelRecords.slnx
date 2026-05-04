@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="DuelRecords.Api/DuelRecords.Api.csproj" />
+  <Project Path="DuelRecords.Blazor/DuelRecords.Blazor.csproj" />
+</Solution>

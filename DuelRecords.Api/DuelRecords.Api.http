@@ -1,0 +1,6 @@
+@DuelRecords.Api_HostAddress = http://localhost:5276
+
+GET {{DuelRecords.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
