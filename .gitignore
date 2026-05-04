@@ -14,7 +14,7 @@ obj/
 .vscode/
 
 # Banco local / dados persistentes
-data/
+/data/
 *.db
 *.sqlite
 *.sqlite3
