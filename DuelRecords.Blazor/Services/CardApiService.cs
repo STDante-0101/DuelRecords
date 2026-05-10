@@ -115,6 +115,24 @@ public class CardApiService : ICardApiService
         };
     }
 
+    private static string? CorrigirUrlImagem(string? imagemUrl)
+    {
+        if (string.IsNullOrWhiteSpace(imagemUrl))
+        {
+            return null;
+        }
+
+        if (imagemUrl.StartsWith("http://duelrecords-api:8080"))
+        {
+            return imagemUrl.Replace(
+                "http://duelrecords-api:8080",
+                "http://192.168.0.2:8080"
+            );
+        }
+
+        return imagemUrl;
+    }
+
     private static Card MapToCard(ApiCardDto dto)
     {
         return new Card
@@ -131,7 +149,7 @@ public class CardApiService : ICardApiService
             Qty = dto.Quantidade,
             Set = dto.Colecao,
             Description = dto.Descricao,
-            ImageUrl = dto.ImagemUrl
+            ImageUrl = CorrigirUrlImagem(dto.ImagemUrl)
         };
     }
 
