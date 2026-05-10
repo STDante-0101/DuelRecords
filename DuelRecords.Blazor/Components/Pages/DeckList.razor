@@ -193,8 +193,8 @@ else
     async Task DeleteDeck(Deck d)
     {
         var ok = await JS.InvokeAsync<bool>(
-            "duelRecords.confirm",
-            $"Excluir o deck \"{d.Name}\"?"
+            "confirm",
+            $"Excluir o deck '{d.Name}'?"
         );
 
         if (!ok)
@@ -203,5 +203,9 @@ else
         }
 
         await State.DeleteDeckAsync(d, DeckApiService);
+
+        await State.LoadDecksFromApiAsync(DeckApiService);
+
+        StateHasChanged();
     }
 }

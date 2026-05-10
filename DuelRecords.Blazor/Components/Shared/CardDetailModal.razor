@@ -1,43 +1,378 @@
 @using DuelRecords.Blazor.Models
+@using DuelRecords.Blazor.Services
+@using Microsoft.JSInterop
+
+@inject IJSRuntime JS
+@inject ICardApiService CardApiService
 
 @code {
     [Parameter, EditorRequired] public Card Card { get; set; } = default!;
     [Parameter] public EventCallback OnClose { get; set; }
     [Parameter] public EventCallback<Card> OnAddToDeck { get; set; }
+    [Parameter] public EventCallback<Card> OnDelete { get; set; }
+    [Parameter] public EventCallback<Card> OnUpdated { get; set; }
     [Parameter] public bool ShowAddToDeck { get; set; }
+
+    private bool editing;
+    private bool saving;
+    private string? errorMessage;
+    private Card editCard = new();
+
+    private void StartEdit()
+    {
+        errorMessage = null;
+
+        editCard = new Card
+        {
+            Id = Card.Id,
+            Name = Card.Name,
+            Type = Card.Type,
+            Attribute = Card.Attribute,
+            Level = Card.Level,
+            Atk = Card.Atk,
+            Def = Card.Def,
+            Kind = Card.Kind,
+            Rarity = Card.Rarity,
+            Qty = Card.Qty,
+            Set = Card.Set,
+            Description = Card.Description,
+            ImageUrl = Card.ImageUrl
+        };
+
+        editing = true;
+    }
+
+    private void CancelEdit()
+    {
+        editing = false;
+        errorMessage = null;
+    }
+
+    private async Task SaveEdit()
+    {
+        if (!int.TryParse(Card.Id, out var id))
+        {
+            errorMessage = "Id do card inválido.";
+            return;
+        }
+
+        try
+        {
+            saving = true;
+            errorMessage = null;
+
+            if (editCard.Type != "Monstro")
+            {
+                editCard.Attribute = null;
+                editCard.Level = null;
+                editCard.Atk = null;
+                editCard.Def = null;
+            }
+
+            if (editCard.Qty < 1)
+            {
+                editCard.Qty = 1;
+            }
+
+            var ok = await CardApiService.UpdateCardAsync(id, editCard);
+
+            if (!ok)
+            {
+                errorMessage = "Não foi possível salvar as alterações.";
+                return;
+            }
+
+            Card.Name = editCard.Name;
+            Card.Type = editCard.Type;
+            Card.Attribute = editCard.Attribute;
+            Card.Level = editCard.Level;
+            Card.Atk = editCard.Atk;
+            Card.Def = editCard.Def;
+            Card.Kind = editCard.Kind;
+            Card.Rarity = editCard.Rarity;
+            Card.Qty = editCard.Qty;
+            Card.Set = editCard.Set;
+            Card.Description = editCard.Description;
+            Card.ImageUrl = editCard.ImageUrl;
+
+            editing = false;
+
+            await OnUpdated.InvokeAsync(Card);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erro ao salvar alterações: {ex.Message}";
+        }
+        finally
+        {
+            saving = false;
+        }
+    }
+
+    private async Task DeleteCard()
+    {
+        var confirmar = await JS.InvokeAsync<bool>(
+            "confirm",
+            $"Deseja excluir o card '{Card.Name}'?"
+        );
+
+        if (!confirmar)
+        {
+            return;
+        }
+
+        await OnDelete.InvokeAsync(Card);
+    }
+
+    private void IncreaseQty()
+    {
+        editCard.Qty++;
+    }
+
+    private void DecreaseQty()
+    {
+        if (editCard.Qty > 1)
+        {
+            editCard.Qty--;
+        }
+    }
+
+    private bool IsEditingMonster => editCard.Type == "Monstro";
 }
 
 <div class="modal-overlay" @onclick="OnClose">
-    <div class="modal" @onclick:stopPropagation="true" style="max-width:760px">
+    <div class="modal" @onclick:stopPropagation="true" style="max-width:820px">
         <div class="modal-head">
-            <h2>@Card.Name</h2>
-            <button class="close-btn" @onclick="OnClose"><Icon Name="close" Size="16" /></button>
+            <h2>@(editing ? $"Editar {Card.Name}" : Card.Name)</h2>
+
+            <button class="close-btn" @onclick="OnClose">
+                <Icon Name="close" Size="16" />
+            </button>
         </div>
+
         <div style="display:grid;grid-template-columns:260px 1fr;gap:28px">
             <div style="aspect-ratio:59/86;border-radius:10px;position:relative;overflow:hidden;box-shadow:0 10px 30px -10px rgba(0,0,0,0.5)">
-                <CardArt Card="Card" />
+                <CardArt Card="@(editing ? editCard : Card)" />
             </div>
-            <div style="display:flex;flex-direction:column;gap:14px">
-                <Row Label="Tipo" Value="@Card.Type" />
-                @if (Card.Attribute != null) { <Row Label="Atributo" Value="@Card.Attribute" /> }
-                @if (Card.Level != null) { <Row Label="Nível" Value="@($"★ {Card.Level}")" /> }
-                <Row Label="Categoria" Value="@Card.Kind" />
-                @if (Card.Atk != null) { <Row Label="ATK / DEF" Value="@($"{Card.Atk} / {Card.Def}")" /> }
-                <Row Label="Raridade" Value="@Card.Rarity" />
-                <Row Label="Edição" Value="@Card.Set" />
-                <Row Label="Quantidade" Value="@($"×{Card.Qty}")" />
-                <div style="margin-top:6px;padding:12px;background:var(--bg-deep);border-radius:9px;border:1px solid var(--border-soft);font-size:13px;color:var(--text-muted);line-height:1.55;font-style:italic">
-                    "Conjure poderes ancestrais para dominar o duelo e reescrever o destino do oponente."
-                </div>
-            </div>
-        </div>
-        <div class="modal-foot">
-            <button class="btn-ghost"><Icon Name="edit" Size="14" /> Editar</button>
-            @if (ShowAddToDeck)
+
+            @if (!editing)
             {
-                <button class="btn-primary" @onclick="() => OnAddToDeck.InvokeAsync(Card)">
-                    <Icon Name="plus" Size="14" /> Adicionar ao deck
-                </button>
+                <div style="display:flex;flex-direction:column;gap:14px">
+                    <Row Label="Tipo" Value="@Card.Type" />
+
+                    @if (Card.Attribute != null)
+                    {
+                        <Row Label="Atributo" Value="@Card.Attribute" />
+                    }
+
+                    @if (Card.Level != null)
+                    {
+                        <Row Label="Nível" Value="@($"★ {Card.Level}")" />
+                    }
+
+                    <Row Label="Categoria" Value="@Card.Kind" />
+
+                    @if (Card.Atk != null)
+                    {
+                        <Row Label="ATK / DEF" Value="@($"{Card.Atk} / {Card.Def}")" />
+                    }
+
+                    <Row Label="Raridade" Value="@Card.Rarity" />
+                    <Row Label="Edição" Value="@Card.Set" />
+                    <Row Label="Quantidade" Value="@($"×{Card.Qty}")" />
+
+                    <div style="margin-top:6px;padding:12px;background:var(--bg-deep);border-radius:9px;border:1px solid var(--border-soft);font-size:13px;color:var(--text-muted);line-height:1.55;font-style:italic">
+                        @if (!string.IsNullOrWhiteSpace(Card.Description))
+                        {
+                            @Card.Description
+                        }
+                        else
+                        {
+                            <span>"Conjure poderes ancestrais para dominar o duelo e reescrever o destino do oponente."</span>
+                        }
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                    <label class="full" style="grid-column:1 / -1">
+                        <span class="field-label">Nome</span>
+                        <input class="input"
+                               value="@editCard.Name"
+                               @oninput="e => editCard.Name = e.Value?.ToString() ?? string.Empty" />
+                    </label>
+
+                    <label>
+                        <span class="field-label">Tipo</span>
+                        <select class="select"
+                                value="@editCard.Type"
+                                @onchange="e => editCard.Type = e.Value?.ToString() ?? editCard.Type">
+                            @foreach (var t in CardCatalog.Types)
+                            {
+                                <option value="@t">@t</option>
+                            }
+                        </select>
+                    </label>
+
+                    <label>
+                        <span class="field-label">Categoria</span>
+                        <select class="select"
+                                value="@editCard.Kind"
+                                @onchange="e => editCard.Kind = e.Value?.ToString() ?? editCard.Kind">
+                            @foreach (var k in CardCatalog.Kinds)
+                            {
+                                <option value="@k">@k</option>
+                            }
+                        </select>
+                    </label>
+
+                    @if (IsEditingMonster)
+                    {
+                        <label>
+                            <span class="field-label">Atributo</span>
+                            <select class="select"
+                                    value="@editCard.Attribute"
+                                    @onchange="e => editCard.Attribute = e.Value?.ToString()">
+                                @foreach (var a in CardCatalog.Attributes)
+                                {
+                                    <option value="@a">@a</option>
+                                }
+                            </select>
+                        </label>
+
+                        <label>
+                            <span class="field-label">Nível</span>
+                            <select class="select"
+                                    value="@editCard.Level"
+                                    @onchange="e => editCard.Level = int.TryParse(e.Value?.ToString(), out var v) ? v : 4">
+                                @for (int l = 1; l <= 12; l++)
+                                {
+                                    <option value="@l">@l</option>
+                                }
+                            </select>
+                        </label>
+
+                        <label>
+                            <span class="field-label">ATK</span>
+                            <input class="input"
+                                   type="number"
+                                   value="@editCard.Atk"
+                                   @oninput="e => editCard.Atk = int.TryParse(e.Value?.ToString(), out var v) ? v : 0" />
+                        </label>
+
+                        <label>
+                            <span class="field-label">DEF</span>
+                            <input class="input"
+                                   type="number"
+                                   value="@editCard.Def"
+                                   @oninput="e => editCard.Def = int.TryParse(e.Value?.ToString(), out var v) ? v : 0" />
+                        </label>
+                    }
+
+                    <label>
+                        <span class="field-label">Raridade</span>
+                        <select class="select"
+                                value="@editCard.Rarity"
+                                @onchange="e => editCard.Rarity = e.Value?.ToString() ?? editCard.Rarity">
+                            @foreach (var r in CardCatalog.Rarities)
+                            {
+                                <option value="@r">@r</option>
+                            }
+                        </select>
+                    </label>
+
+                    <label>
+                        <span class="field-label">Quantidade</span>
+                        <div style="display:flex;gap:8px;align-items:center">
+                            <button class="btn-ghost"
+                                    type="button"
+                                    style="width:38px;justify-content:center"
+                                    @onclick="DecreaseQty">
+                                -
+                            </button>
+
+                            <input class="input"
+                                   type="number"
+                                   min="1"
+                                   value="@editCard.Qty"
+                                   @oninput="e => editCard.Qty = int.TryParse(e.Value?.ToString(), out var v) ? Math.Max(1, v) : 1" />
+
+                            <button class="btn-ghost"
+                                    type="button"
+                                    style="width:38px;justify-content:center"
+                                    @onclick="IncreaseQty">
+                                +
+                            </button>
+                        </div>
+                    </label>
+
+                    <label class="full" style="grid-column:1 / -1">
+                        <span class="field-label">Coleção / Edição</span>
+                        <input class="input"
+                               value="@editCard.Set"
+                               @oninput="e => editCard.Set = e.Value?.ToString() ?? string.Empty" />
+                    </label>
+
+                    <label class="full" style="grid-column:1 / -1">
+                        <span class="field-label">Descrição</span>
+                        <textarea style="min-height:90px"
+                                  @oninput="e => editCard.Description = e.Value?.ToString()">@editCard.Description</textarea>
+                    </label>
+
+                    @if (!string.IsNullOrWhiteSpace(errorMessage))
+                    {
+                        <div style="grid-column:1 / -1;color:#fca5a5;font-size:13px">
+                            @errorMessage
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+
+        <div class="modal-foot">
+            @if (!editing)
+            {
+                <div style="display:flex;gap:10px">
+                    <button class="btn-ghost"
+                            style="border-color:#7f1d1d;color:#fca5a5"
+                            @onclick="DeleteCard">
+                        <Icon Name="trash" Size="14" />
+                        Excluir
+                    </button>
+
+                    <button class="btn-ghost"
+                            @onclick="StartEdit">
+                        <Icon Name="edit" Size="14" />
+                        Editar
+                    </button>
+                </div>
+
+                @if (ShowAddToDeck)
+                {
+                    <button class="btn-primary"
+                            @onclick="() => OnAddToDeck.InvokeAsync(Card)">
+                        <Icon Name="plus" Size="14" />
+                        Adicionar ao deck
+                    </button>
+                }
+            }
+            else
+            {
+                <div style="display:flex;gap:10px">
+                    <button class="btn-ghost"
+                            @onclick="CancelEdit"
+                            disabled="@saving">
+                        Cancelar
+                    </button>
+
+                    <button class="btn-primary"
+                            @onclick="SaveEdit"
+                            disabled="@saving">
+                        <Icon Name="edit" Size="14" />
+                        @(saving ? "Salvando..." : "Salvar alterações")
+                    </button>
+                </div>
             }
         </div>
     </div>

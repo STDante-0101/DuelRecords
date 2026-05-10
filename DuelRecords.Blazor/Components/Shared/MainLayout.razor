@@ -12,7 +12,7 @@
 
 @implements IDisposable
 
-<div class="app">
+<div class="app" style="@AccentStyle">
     <aside class="sidebar">
         <div class="brand">
             <div class="brand-mark">
@@ -71,19 +71,6 @@
     </aside>
 
     <div class="main">
-        <div class="topbar">
-            <button class="icon-btn"
-                    @onclick="ToggleTheme"
-                    title="Alternar tema">
-                <Icon Name="@(theme == "dark" ? "sun" : "moon")" Size="16" />
-            </button>
-
-            <button class="text-btn" type="button">
-                <Icon Name="info" Size="14" />
-                Sobre
-            </button>
-        </div>
-
         <div class="page">
             @Body
         </div>
@@ -93,14 +80,25 @@
 </div>
 
 @code {
-    private string theme = "dark";
-
     private string CurrentPath
     {
         get
         {
             var path = new Uri(Nav.Uri).AbsolutePath;
             return string.IsNullOrWhiteSpace(path) ? "/" : path;
+        }
+    }
+
+    private string AccentStyle
+    {
+        get
+        {
+            var accent = AppState.AccentPresets.GetValueOrDefault(
+                State.Accent,
+                AppState.AccentPresets["purple"]
+            );
+
+            return $"--accent:{accent.c1}; --accent-2:{accent.c2}; --accent-glow:{accent.glow};";
         }
     }
 
@@ -116,16 +114,7 @@
 
         try
         {
-            theme = await JS.InvokeAsync<string>("duelRecords.getTheme");
-        }
-        catch
-        {
-            theme = "dark";
-        }
-
-        try
-        {
-            await JS.InvokeVoidAsync("duelRecords.setTheme", theme);
+            await JS.InvokeVoidAsync("duelRecords.setTheme", "dark");
 
             var accent = AppState.AccentPresets.GetValueOrDefault(
                 State.Accent,
@@ -144,12 +133,6 @@
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
     {
         StateHasChanged();
-    }
-
-    private async Task ToggleTheme()
-    {
-        theme = theme == "dark" ? "light" : "dark";
-        await JS.InvokeVoidAsync("duelRecords.setTheme", theme);
     }
 
     public void Dispose()

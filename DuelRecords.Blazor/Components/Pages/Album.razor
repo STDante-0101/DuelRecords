@@ -1,19 +1,18 @@
 @page "/"
 
-
+@using Microsoft.JSInterop
 @using DuelRecords.Blazor.Models
 @using DuelRecords.Blazor.Services
 @using DuelRecords.Blazor.Components.Shared
 
 @inject AppState State
 @inject ICardApiService CardApiService
-@inject NavigationManager Nav
+@inject IJSRuntime JS
 
 @implements IDisposable
 
 <div class="page-head">
     <div class="page-title">
-
         <div class="icon-bubble">
             <Icon Name="album" Size="22" />
         </div>
@@ -21,7 +20,7 @@
         <div>
             <h1>Álbum de Cards</h1>
 
-            <p style="color:white;margin-top:10px">
+            <p style="color:#fbbf24;margin:6px 0 0 0;font-size:13px">
                 @debugMessage
             </p>
 
@@ -29,12 +28,9 @@
                 Visualize e gerencie sua coleção de cartas.
             </div>
         </div>
-
     </div>
 
-    <button class="btn-primary"
-            @onclick="OpenRegisterModal">
-
+    <button class="btn-primary" @onclick="OpenRegisterModal">
         <Icon Name="plus" Size="15" />
         Cadastrar Card
     </button>
@@ -62,22 +58,11 @@ else if (!string.IsNullOrWhiteSpace(State.CardsError))
 else
 {
     var filtered = ApplyFilters();
-
     var perPage = State.Cols * 2;
-
-    var totalPages = Math.Max(
-        1,
-        (int)Math.Ceiling((double)filtered.Count / perPage)
-    );
-
+    var totalPages = Math.Max(1, (int)Math.Ceiling((double)filtered.Count / perPage));
     var safePage = Math.Min(page, totalPages);
-
     var startIdx = (safePage - 1) * perPage;
-
-    var visible = filtered
-        .Skip(startIdx)
-        .Take(perPage)
-        .ToList();
+    var visible = filtered.Skip(startIdx).Take(perPage).ToList();
 
     if (visible.Count == 0)
     {
@@ -88,25 +73,21 @@ else
     else
     {
         <div class="card-grid" style="--cols:@State.Cols">
-
             @foreach (var c in visible)
             {
-                <div @onclick="() => OpenCard(c)">
-                    <CardTile Card="c" />
-                </div>
-            }
+                var card = c;
 
+                <CardTile Card="card"
+                          OnClick="() => OpenCard(card)" />
+            }
         </div>
     }
 
     <div class="pagination">
-
         <span></span>
 
         <div class="pager">
-
-            <button class="page-btn"
-                    @onclick="PreviousPage">
+            <button class="page-btn" @onclick="PreviousPage">
                 &lt;
             </button>
 
@@ -116,35 +97,29 @@ else
 
                 <button class="page-btn @(p == safePage ? "active" : "")"
                         @onclick="() => GoToPage(p)">
-
                     @p
-
                 </button>
             }
 
-            <button class="page-btn"
-                    @onclick="() => NextPage(totalPages)">
+            <button class="page-btn" @onclick="() => NextPage(totalPages)">
                 &gt;
             </button>
-
         </div>
 
         <span>
-            Mostrando
-            @(filtered.Count == 0 ? 0 : startIdx + 1)
-            a
-            @Math.Min(startIdx + perPage, filtered.Count)
-            de
-            @filtered.Count cards
+            Mostrando @(filtered.Count == 0 ? 0 : startIdx + 1)
+            a @Math.Min(startIdx + perPage, filtered.Count)
+            de @filtered.Count cards
         </span>
-
     </div>
 }
 
 @if (openCard != null)
 {
     <CardDetailModal Card="openCard"
-                     OnClose="CloseCardModal" />
+                     OnClose="CloseCardModal"
+                     OnDelete="DeleteCardAsync"
+                     OnUpdated="OnCardUpdatedAsync" />
 }
 
 @if (showRegister)
@@ -153,24 +128,24 @@ else
 }
 
 @code {
-
     private int page = 1;
-
     private string sort = "name-asc";
-
     private CardFilters filters = new();
-
     private Card? openCard;
-
     private bool showRegister;
-
-    private string debugMessage = "Ainda não clicou";
+    private string debugMessage = "Aguardando ação";
 
     protected override async Task OnInitializedAsync()
     {
         State.OnChange += StateHasChanged;
-
         await State.LoadCardsFromApiAsync(CardApiService);
+    }
+
+    private async Task OnCardUpdatedAsync(Card card)
+    {
+        debugMessage = $"Card atualizado: {card.Name}";
+        await State.LoadCardsFromApiAsync(CardApiService);
+        StateHasChanged();
     }
 
     public void Dispose()
@@ -178,32 +153,46 @@ else
         State.OnChange -= StateHasChanged;
     }
 
-    private void TestClick()
-    {
-        debugMessage = $"CLICK FUNCIONOU {DateTime.Now:HH:mm:ss}";
-
-        Console.WriteLine(debugMessage);
-
-        StateHasChanged();
-    }
-
     private void OpenRegisterModal()
     {
         showRegister = true;
-
-        Console.WriteLine("ABRIR MODAL");
     }
 
     private void OpenCard(Card card)
     {
         openCard = card;
-
-        Console.WriteLine($"ABRIR CARD {card.Name}");
+        debugMessage = $"Card aberto: {card.Name} - Id {card.Id}";
     }
 
     private void CloseCardModal()
     {
         openCard = null;
+    }
+
+    private async Task DeleteCardAsync(Card card)
+    {
+        debugMessage = $"Tentando excluir: {card.Name} - Id {card.Id}";
+        StateHasChanged();
+
+        if (!int.TryParse(card.Id, out var cardId))
+        {
+            debugMessage = $"Id inválido para exclusão: {card.Id}";
+            await JS.InvokeVoidAsync("alert", debugMessage);
+            return;
+        }
+
+        var sucesso = await CardApiService.DeleteCardAsync(cardId);
+
+        debugMessage = $"Resultado exclusão: {sucesso}";
+        await JS.InvokeVoidAsync("alert", debugMessage);
+
+        if (sucesso)
+        {
+            openCard = null;
+            await State.LoadCardsFromApiAsync(CardApiService);
+            debugMessage = $"Card excluído: {card.Name}";
+            StateHasChanged();
+        }
     }
 
     private void PreviousPage()
@@ -224,27 +213,21 @@ else
     private void OnFiltersChanged(CardFilters f)
     {
         filters = f;
-
         page = 1;
-
         StateHasChanged();
     }
 
     private void OnSortChanged(string s)
     {
         sort = s;
-
         page = 1;
-
         StateHasChanged();
     }
 
     private void ClearFilters()
     {
         filters = new();
-
         sort = "name-asc";
-
         page = 1;
     }
 
@@ -259,26 +242,22 @@ else
                     return false;
                 }
 
-                if (!string.IsNullOrEmpty(filters.Type) &&
-                    c.Type != filters.Type)
+                if (!string.IsNullOrEmpty(filters.Type) && c.Type != filters.Type)
                 {
                     return false;
                 }
 
-                if (!string.IsNullOrEmpty(filters.Attribute) &&
-                    c.Attribute != filters.Attribute)
+                if (!string.IsNullOrEmpty(filters.Attribute) && c.Attribute != filters.Attribute)
                 {
                     return false;
                 }
 
-                if (!string.IsNullOrEmpty(filters.Level) &&
-                    c.Level?.ToString() != filters.Level)
+                if (!string.IsNullOrEmpty(filters.Level) && c.Level?.ToString() != filters.Level)
                 {
                     return false;
                 }
 
-                if (!string.IsNullOrEmpty(filters.Kind) &&
-                    c.Kind != filters.Kind)
+                if (!string.IsNullOrEmpty(filters.Kind) && c.Kind != filters.Kind)
                 {
                     return false;
                 }
@@ -289,24 +268,12 @@ else
 
         return sort switch
         {
-            "name-asc" =>
-                arr.OrderBy(c => c.Name).ToList(),
-
-            "name-desc" =>
-                arr.OrderByDescending(c => c.Name).ToList(),
-
-            "atk-desc" =>
-                arr.OrderByDescending(c => c.Atk ?? 0).ToList(),
-
-            "atk-asc" =>
-                arr.OrderBy(c => c.Atk ?? 0).ToList(),
-
-            "qty-desc" =>
-                arr.OrderByDescending(c => c.Qty).ToList(),
-
-            "rarity" =>
-                arr.OrderByDescending(c => CardCatalog.RarityRank(c.Rarity)).ToList(),
-
+            "name-asc" => arr.OrderBy(c => c.Name).ToList(),
+            "name-desc" => arr.OrderByDescending(c => c.Name).ToList(),
+            "atk-desc" => arr.OrderByDescending(c => c.Atk ?? 0).ToList(),
+            "atk-asc" => arr.OrderBy(c => c.Atk ?? 0).ToList(),
+            "qty-desc" => arr.OrderByDescending(c => c.Qty).ToList(),
+            "rarity" => arr.OrderByDescending(c => CardCatalog.RarityRank(c.Rarity)).ToList(),
             _ => arr
         };
     }
@@ -314,7 +281,6 @@ else
     private async Task OnRegisterModalClose()
     {
         showRegister = false;
-
         await State.LoadCardsFromApiAsync(CardApiService);
     }
 }

@@ -80,14 +80,25 @@ public class CardService : ICardService
 
     public async Task<bool> DeleteAsync(int id)
     {
-        var card = await _context.Cards.FindAsync(id);
+        var card = await _context.Cards
+            .FirstOrDefaultAsync(c => c.Id == id);
 
         if (card == null)
         {
             return false;
         }
 
+        var deckCards = await _context.DeckCards
+            .Where(dc => dc.CardId == id)
+            .ToListAsync();
+
+        if (deckCards.Count > 0)
+        {
+            _context.DeckCards.RemoveRange(deckCards);
+        }
+
         _context.Cards.Remove(card);
+
         await _context.SaveChangesAsync();
 
         return true;

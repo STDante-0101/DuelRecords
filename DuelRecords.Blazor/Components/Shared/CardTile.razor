@@ -1,33 +1,63 @@
 @using DuelRecords.Blazor.Models
 
 @code {
-    [Parameter, EditorRequired] public Card Card { get; set; } = default!;
-    [Parameter] public EventCallback OnClick { get; set; }
-    [Parameter] public bool AlwaysShowQty { get; set; }
+    [Parameter, EditorRequired]
+    public Card Card { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback OnClick { get; set; }
+
+    [Parameter]
+    public bool AlwaysShowQty { get; set; }
 }
 
-<div class="card-tile @(AlwaysShowQty ? "always-show-qty" : "")" @onclick="OnClick">
-    <div class="qty-chip"><span class="x">×</span> @Card.Qty</div>
+<div class="card-tile @(AlwaysShowQty ? "always-show-qty" : "")"
+     @onclick="() => OnClick.InvokeAsync()">
+
+    <div class="qty-chip">
+        <span class="x">×</span> @Card.Qty
+    </div>
+
     <div class="card-frame">
         <CardArt Card="Card" />
     </div>
+
     <div class="quick-actions">
-        <button class="quick-btn" @onclick="OnClick" @onclick:stopPropagation="true">
-            <Icon Name="eye" Size="13" /> Detalhes
+        <button class="quick-btn"
+                @onclick="() => OnClick.InvokeAsync()"
+                @onclick:stopPropagation="true">
+
+            <Icon Name="eye" Size="13" />
+            Detalhes
         </button>
     </div>
+
     <div class="card-meta">
-        <div class="card-name">@Card.Name</div>
+        <div class="card-name">
+            @Card.Name
+        </div>
+
         <div class="card-stats">
             @if (Card.Type == "Monstro")
             {
-                <span class="card-level"><Icon Name="star" Size="12" /> @Card.Level</span>
-                <span class="card-atk">ATK @Card.Atk</span>
+                <span class="card-level">
+                    <Icon Name="star" Size="12" />
+                    @Card.Level
+                </span>
+
+                <span class="card-atk">
+                    ATK @Card.Atk
+                </span>
             }
             else
             {
-                <span class="@(Card.Type == "Magia" ? "type-tag-spell" : "type-tag-trap")">@Card.Type</span>
-                <span class="card-atk" style="font-size:11px">@Card.Kind</span>
+                <span class="@(Card.Type == "Magia" ? "type-tag-spell" : "type-tag-trap")">
+                    @Card.Type
+                </span>
+
+                <span class="card-atk" style="font-size:11px">
+                    @Card.Kind
+                </span>
             }
         </div>
     </div>
