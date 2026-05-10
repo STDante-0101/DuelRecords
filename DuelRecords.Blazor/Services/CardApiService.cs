@@ -126,7 +126,7 @@ public class CardApiService : ICardApiService
         {
             return imagemUrl.Replace(
                 "http://duelrecords-api:8080",
-                "http://192.168.0.2:8080"
+                "http://192.168.0.2:5001"
             );
         }
 
