@@ -1,0 +1,44 @@
+@using DuelRecords.Blazor.Models
+
+@code {
+    [Parameter, EditorRequired] public Card Card { get; set; } = default!;
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback<Card> OnAddToDeck { get; set; }
+    [Parameter] public bool ShowAddToDeck { get; set; }
+}
+
+<div class="modal-overlay" @onclick="OnClose">
+    <div class="modal" @onclick:stopPropagation="true" style="max-width:760px">
+        <div class="modal-head">
+            <h2>@Card.Name</h2>
+            <button class="close-btn" @onclick="OnClose"><Icon Name="close" Size="16" /></button>
+        </div>
+        <div style="display:grid;grid-template-columns:260px 1fr;gap:28px">
+            <div style="aspect-ratio:59/86;border-radius:10px;position:relative;overflow:hidden;box-shadow:0 10px 30px -10px rgba(0,0,0,0.5)">
+                <CardArt Card="Card" />
+            </div>
+            <div style="display:flex;flex-direction:column;gap:14px">
+                <Row Label="Tipo" Value="@Card.Type" />
+                @if (Card.Attribute != null) { <Row Label="Atributo" Value="@Card.Attribute" /> }
+                @if (Card.Level != null) { <Row Label="Nível" Value="@($"★ {Card.Level}")" /> }
+                <Row Label="Categoria" Value="@Card.Kind" />
+                @if (Card.Atk != null) { <Row Label="ATK / DEF" Value="@($"{Card.Atk} / {Card.Def}")" /> }
+                <Row Label="Raridade" Value="@Card.Rarity" />
+                <Row Label="Edição" Value="@Card.Set" />
+                <Row Label="Quantidade" Value="@($"×{Card.Qty}")" />
+                <div style="margin-top:6px;padding:12px;background:var(--bg-deep);border-radius:9px;border:1px solid var(--border-soft);font-size:13px;color:var(--text-muted);line-height:1.55;font-style:italic">
+                    "Conjure poderes ancestrais para dominar o duelo e reescrever o destino do oponente."
+                </div>
+            </div>
+        </div>
+        <div class="modal-foot">
+            <button class="btn-ghost"><Icon Name="edit" Size="14" /> Editar</button>
+            @if (ShowAddToDeck)
+            {
+                <button class="btn-primary" @onclick="() => OnAddToDeck.InvokeAsync(Card)">
+                    <Icon Name="plus" Size="14" /> Adicionar ao deck
+                </button>
+            }
+        </div>
+    </div>
+</div>

@@ -1,0 +1,230 @@
+@* Procedural TCG-style card art. Uses real uploaded image when Card.ImageUrl exists. *@
+@using DuelRecords.Blazor.Models
+@using DuelRecords.Blazor.Services
+@using DuelRecords.Services
+
+@code {
+    [Parameter, EditorRequired] public Card Card { get; set; } = default!;
+    [Parameter] public bool Compact { get; set; }
+
+    private bool HasImage => !string.IsNullOrWhiteSpace(Card.ImageUrl);
+
+    string AttrColor(string? a) => a switch
+    {
+        "Trevas" => "#5b21b6",
+        "Luz" => "#facc15",
+        "Fogo" => "#dc2626",
+        "Água" => "#0ea5e9",
+        "Terra" => "#a16207",
+        "Vento" => "#10b981",
+        _ => "#fde047",
+    };
+}
+
+@if (HasImage)
+{
+    <img src="@Card.ImageUrl"
+         alt="@Card.Name"
+         style="
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    object-position:center;
+    display:block;
+    border-radius:12px;
+    overflow:hidden;" />
+
+    return;
+}
+
+@{
+    var fc = CardCatalog.GetFrameColor(Card);
+
+    var nameColor = Card.Kind == "XYZ"
+        ? "#fff"
+        : (Card.Kind == "Sincro" ? "#1a1a1a" : "#1a0e2e");
+
+    var nameShadow = Card.Kind is "XYZ" or "Sincro"
+        ? "none"
+        : "0 1px 0 rgba(255,255,255,0.18)";
+
+    var pad = Compact ? "3%" : "5%";
+    var gap = Compact ? "1%" : "2.5%";
+    var headPad = Compact ? "1px 4px" : "3px 7px";
+    var headFs = Compact ? "5.5px" : "8.5px";
+    var dotSize = Compact ? "10px" : "14px";
+    var dotFs = Compact ? "5px" : "7px";
+    var starFs = Compact ? "5px" : "7px";
+}
+
+<div class="tcg-card"
+     style="
+    position:absolute;
+    inset:0;
+    background:linear-gradient(180deg,@fc.Top,@fc.Bot);
+    display:flex;
+    flex-direction:column;
+    padding:@pad;
+    gap:@gap;
+    border-radius:8px;
+    overflow:hidden;">
+
+    <!-- HEADER -->
+    <div style="
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        background:linear-gradient(180deg,rgba(255,255,255,0.2),rgba(0,0,0,0.15));
+        padding:@headPad;
+        border-radius:2px;
+        font-family:'Cinzel',serif;
+        font-weight:700;
+        font-size:@headFs;
+        color:@nameColor;
+        text-shadow:@nameShadow;
+        white-space:nowrap;
+        overflow:hidden;
+        text-overflow:ellipsis;
+        letter-spacing:0.02em;
+        text-transform:uppercase;
+        flex-shrink:0">
+
+        <span style="overflow:hidden;text-overflow:ellipsis">
+            @Card.Name
+        </span>
+
+        @if (Card.Attribute != null)
+        {
+            <span style="
+                width:@dotSize;
+                height:@dotSize;
+                border-radius:999px;
+                background:@AttrColor(Card.Attribute);
+                border:1px solid rgba(0,0,0,0.4);
+                display:grid;
+                place-items:center;
+                font-size:@dotFs;
+                font-weight:800;
+                color:rgba(255,255,255,0.95);
+                flex-shrink:0">
+
+                @Card.Attribute[0]
+            </span>
+        }
+    </div>
+
+    <!-- STARS -->
+    @if (Card.Level is int lvl)
+    {
+        <div style="
+            display:flex;
+            justify-content:flex-end;
+            gap:1px;
+            flex-shrink:0">
+
+            @for (int i = 0; i < Math.Min(lvl, 12); i++)
+            {
+                <span style="
+                    font-size:@starFs;
+                    color:#fbbf24;
+                    filter:drop-shadow(0 0 1px rgba(0,0,0,0.6))">
+
+                    ★
+                </span>
+            }
+        </div>
+    }
+
+    <!-- ART -->
+    <div style="
+        flex:1;
+        border:1px solid rgba(0,0,0,0.5);
+        border-radius:2px;
+        overflow:hidden;
+        box-shadow:inset 0 0 0 1px rgba(255,255,255,0.15);
+        position:relative;
+        background:#0a0612;
+        min-height:0;">
+
+        <div style="position:absolute;inset:0">
+            @((MarkupString)CardArtBuilder.ArtSvg(Card))
+        </div>
+    </div>
+
+    <!-- DESCRIPTION -->
+    @if (!Compact)
+    {
+        <div style="
+            background:rgba(245,240,220,0.95);
+            border-radius:2px;
+            padding:4px 6px;
+            font-size:5.5px;
+            color:#3a2410;
+            line-height:1.2;
+            font-family:'Plus Jakarta Sans',sans-serif;
+            font-style:italic;
+            flex-shrink:0;
+            min-height:16%">
+
+            <div style="
+                font-weight:700;
+                font-size:5.5px;
+                margin-bottom:1px;
+                letter-spacing:0.04em;
+                text-transform:uppercase;
+                font-style:normal">
+
+                [@Card.Kind / @Card.Type]
+            </div>
+
+            <div style="
+                display:-webkit-box;
+                -webkit-line-clamp:2;
+                -webkit-box-orient:vertical;
+                overflow:hidden">
+
+                @if (!string.IsNullOrWhiteSpace(Card.Description))
+                {
+                    @Card.Description
+                }
+                else
+                {
+                    <span>
+                        Conjure poderes ancestrais para dominar o duelo e reescrever o destino.
+                    </span>
+                }
+            </div>
+
+            @if (Card.Atk is int atk)
+            {
+                <div style="
+                    display:flex;
+                    justify-content:flex-end;
+                    gap:6px;
+                    font-weight:700;
+                    font-style:normal;
+                    margin-top:2px">
+
+                    <span>ATK/@atk</span>
+                    <span>DEF/@Card.Def</span>
+                </div>
+            }
+        </div>
+
+        <!-- FOOTER -->
+        <div style="
+            display:flex;
+            justify-content:space-between;
+            font-size:5px;
+            color:rgba(0,0,0,0.55);
+            font-weight:600;
+            letter-spacing:0.04em;
+            flex-shrink:0">
+
+            <span>@Card.Set</span>
+            <span>★ @Card.Rarity</span>
+        </div>
+    }
+</div>

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>DuelRecords — Catálogo Yu-Gi-Oh!</title>
+    <base href="/" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="css/app.css" rel="stylesheet" />
+    <link href="css/extra.css" rel="stylesheet" />
+    <link href="DuelRecords.styles.css" rel="stylesheet" />
+</head>
+
+<body>
+    <div id="app">
+        <div class="loading-splash">
+            <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="1.6">
+                <path d="M12 2l2.5 6.5L21 11l-6.5 2.5L12 20l-2.5-6.5L3 11l6.5-2.5z" fill="rgba(167,139,250,0.18)" />
+                <circle cx="12" cy="11" r="2.5" fill="#a78bfa" stroke="none" />
+            </svg>
+            <div style="margin-top:12px;font-family:'Cinzel',serif;color:#a78bfa">DuelRecords…</div>
+        </div>
+    </div>
+
+    <div id="ambience" aria-hidden="true" style="position:fixed;inset:0;pointer-events:none;z-index:0"></div>
+
+    <div id="blazor-error-ui">
+        Ocorreu um erro inesperado.
+        <a href="" class="reload">Recarregar</a>
+        <a class="dismiss">🗙</a>
+    </div>
+
+    <script src="js/ambience.js"></script>
+    <script src="_framework/blazor.webassembly.js"></script>
+</body>
+
+</html>

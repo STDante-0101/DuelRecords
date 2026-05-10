@@ -1,0 +1,8 @@
+@code {
+    [Parameter, EditorRequired] public string Label { get; set; } = "";
+    [Parameter, EditorRequired] public string Value { get; set; } = "";
+}
+<div style="display:flex;justify-content:space-between;padding-bottom:8px;border-bottom:1px solid var(--border-soft)">
+    <span style="color:var(--text-muted);font-size:12px;text-transform:uppercase;letter-spacing:0.05em;font-weight:600">@Label</span>
+    <span style="font-size:14px;color:var(--text);font-weight:600">@Value</span>
+</div>

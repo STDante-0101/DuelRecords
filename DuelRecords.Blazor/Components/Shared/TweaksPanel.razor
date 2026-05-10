@@ -1,0 +1,58 @@
+@using DuelRecords.Blazor.Services
+@using DuelRecords.Services
+@using Microsoft.JSInterop
+
+@inject AppState State
+@inject IJSRuntime JS
+
+@if (open)
+{
+    <div class="tweaks-panel">
+        <div class="tweaks-head">
+            <span>Tweaks</span>
+            <button class="close-btn" @onclick="() => open = false"><Icon Name="close" Size="14" /></button>
+        </div>
+
+        <div class="tweaks-section">
+            <div class="tweaks-label">Acento</div>
+            <div class="tweaks-radio">
+                <button class="@(State.Accent == "purple"  ? "on" : "")" @onclick='() => SetAccent("purple")'>Roxo</button>
+                <button class="@(State.Accent == "cyan"    ? "on" : "")" @onclick='() => SetAccent("cyan")'>Ciano</button>
+                <button class="@(State.Accent == "gold"    ? "on" : "")" @onclick='() => SetAccent("gold")'>Ouro</button>
+                <button class="@(State.Accent == "crimson" ? "on" : "")" @onclick='() => SetAccent("crimson")'>Carmim</button>
+            </div>
+        </div>
+
+        <div class="tweaks-section">
+            <div class="tweaks-label">Colunas do álbum</div>
+            <select class="select" value="@State.Cols" @onchange="OnColsChange">
+                <option value="4">4 (espaçoso)</option>
+                <option value="5">5</option>
+                <option value="6">6 (padrão)</option>
+                <option value="7">7 (denso)</option>
+            </select>
+        </div>
+    </div>
+}
+
+<button class="tweaks-fab" @onclick="() => open = !open" title="Tweaks">
+    <Icon Name="sparkles" Size="16" />
+</button>
+
+@code {
+    bool open;
+
+    async Task SetAccent(string accent)
+    {
+        State.SetAccent(accent);
+        var a = AppState.AccentPresets[accent];
+        await JS.InvokeVoidAsync("duelRecords.setCssVar", "--accent", a.c1);
+        await JS.InvokeVoidAsync("duelRecords.setCssVar", "--accent-2", a.c2);
+        await JS.InvokeVoidAsync("duelRecords.setCssVar", "--accent-glow", a.glow);
+    }
+
+    void OnColsChange(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var n)) State.SetCols(n);
+    }
+}

@@ -1,0 +1,10 @@
+@using DuelRecords.Blazor.Models
+
+@code {
+    [Parameter, EditorRequired] public Card Card { get; set; } = default!;
+    [Parameter] public EventCallback OnClick { get; set; }
+}
+
+<div class="deck-slot filled" @onclick="OnClick" title="@Card.Name" style="position:relative">
+    <CardArt Card="Card" Compact="true" />
+</div>

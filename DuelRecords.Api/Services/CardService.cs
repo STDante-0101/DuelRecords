@@ -16,7 +16,9 @@ public class CardService : ICardService
 
     public async Task<List<Card>> GetAllAsync()
     {
-        return await _context.Cards.ToListAsync();
+        return await _context.Cards
+            .OrderBy(c => c.Nome)
+            .ToListAsync();
     }
 
     public async Task<Card?> GetByIdAsync(int id)
@@ -29,12 +31,17 @@ public class CardService : ICardService
         var card = new Card
         {
             Nome = dto.Nome,
-            TipoCard = dto.TipoCard,
+            Tipo = dto.Tipo,
             Atributo = dto.Atributo,
             Nivel = dto.Nivel,
             Ataque = dto.Ataque,
             Defesa = dto.Defesa,
+            TipoDeck = dto.TipoDeck,
+            Raridade = dto.Raridade,
+            Quantidade = dto.Quantidade,
+            Colecao = dto.Colecao,
             Descricao = dto.Descricao,
+            ImagemUrl = dto.ImagemUrl,
             DataCadastro = DateTime.Now
         };
 
@@ -54,12 +61,17 @@ public class CardService : ICardService
         }
 
         card.Nome = dto.Nome;
-        card.TipoCard = dto.TipoCard;
+        card.Tipo = dto.Tipo;
         card.Atributo = dto.Atributo;
         card.Nivel = dto.Nivel;
         card.Ataque = dto.Ataque;
         card.Defesa = dto.Defesa;
+        card.TipoDeck = dto.TipoDeck;
+        card.Raridade = dto.Raridade;
+        card.Quantidade = dto.Quantidade;
+        card.Colecao = dto.Colecao;
         card.Descricao = dto.Descricao;
+        card.ImagemUrl = dto.ImagemUrl;
 
         await _context.SaveChangesAsync();
 

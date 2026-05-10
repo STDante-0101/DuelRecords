@@ -1,0 +1,207 @@
+@page "/decks"
+
+@using DuelRecords.Blazor.Models
+@using DuelRecords.Blazor.Services
+@using DuelRecords.Blazor.Components.Shared
+@using Microsoft.JSInterop
+
+@inject AppState State
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+@inject IDeckApiService DeckApiService
+@inject ICardApiService CardApiService
+
+@implements IDisposable
+
+<div class="page-head">
+    <div class="page-title">
+        <div class="icon-bubble">
+            <Icon Name="sword" Size="22" />
+        </div>
+
+        <div>
+            <h1>Meus Decks</h1>
+
+            <div class="sub">
+                @State.Decks.Count
+                @(State.Decks.Count == 1
+                    ? " deck construído"
+                    : " decks construídos")
+            </div>
+        </div>
+    </div>
+
+    <button class="btn-primary"
+            @onclick='() => Nav.NavigateTo("/decks/new")'>
+
+        <Icon Name="plus" Size="15" />
+        Novo deck
+    </button>
+</div>
+
+@if (State.Decks.Count == 0)
+{
+    <div class="empty">
+        <Icon Name="sword" Size="36" />
+
+        <h3>Nenhum deck construído</h3>
+
+        <div>
+            Crie seu primeiro deck para começar a duelar.
+        </div>
+
+        <button class="btn-primary"
+                style="margin-top:16px"
+                @onclick='() => Nav.NavigateTo("/decks/new")'>
+
+            <Icon Name="plus" Size="14" />
+            Construir meu primeiro deck
+        </button>
+    </div>
+}
+else
+{
+    <div class="deck-card-grid">
+
+        @foreach (var d in State.Decks)
+        {
+            var deck = d;
+
+            var previews = deck.Cards
+                .Take(6)
+                .Select(x => State.GetCard(x.Id))
+                .Where(c => c != null)
+                .ToList();
+
+            <div class="deck-card"
+                 @onclick="() => EditDeck(deck)">
+
+                <div class="deck-cover">
+
+                    @if (previews.Count == 0)
+                    {
+                        <div style="
+                            flex:1;
+                            display:grid;
+                            place-items:center;
+                            color:var(--text-dim);
+                            font-size:12px">
+
+                            Deck vazio
+                        </div>
+                    }
+                    else
+                    {
+                        @foreach (var c in previews)
+                        {
+                            <div class="mini-card">
+                                <CardArt Card="c!" Compact="true" />
+                            </div>
+                        }
+                    }
+                </div>
+
+                <div style="
+                    display:flex;
+                    justify-content:space-between;
+                    align-items:flex-start;
+                    gap:10px">
+
+                    <div>
+                        <div style="
+                            font-family:Cinzel,serif;
+                            font-size:17px;
+                            font-weight:700">
+
+                            @deck.Name
+                        </div>
+
+                        <div style="
+                            font-size:12px;
+                            color:var(--text-muted);
+                            margin-top:4px">
+
+                            @deck.Cards.Count cartas
+                        </div>
+                    </div>
+
+                    <div style="display:flex;gap:6px">
+
+                        <button class="icon-btn"
+                                @onclick="() => DeleteDeck(deck)"
+                                @onclick:stopPropagation="true">
+
+                            <Icon Name="trash" Size="14" />
+                        </button>
+                    </div>
+                </div>
+
+                <div style="display:flex;gap:8px;margin-top:14px">
+
+                    <button class="btn-ghost"
+                            style="flex:1"
+                            @onclick="() => EditDeck(deck)"
+                            @onclick:stopPropagation="true">
+
+                        <Icon Name="edit" Size="13" />
+                        Editar
+                    </button>
+
+                    <button class="btn-primary"
+                            style="flex:1;justify-content:center"
+                            @onclick="() => StartPurchase(deck)"
+                            @onclick:stopPropagation="true">
+
+                        <Icon Name="pack" Size="14" />
+                        Comprar 5
+                    </button>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+
+    protected override async Task OnInitializedAsync()
+    {
+        State.OnChange += StateHasChanged;
+
+        if (State.Cards.Count == 0)
+        {
+            await State.LoadCardsFromApiAsync(CardApiService);
+        }
+
+        await State.LoadDecksFromApiAsync(DeckApiService);
+    }
+
+    public void Dispose()
+    {
+        State.OnChange -= StateHasChanged;
+    }
+
+    void EditDeck(Deck d)
+    {
+        Nav.NavigateTo($"/decks/{d.Id}");
+    }
+
+    void StartPurchase(Deck d)
+    {
+        Nav.NavigateTo($"/booster/{d.Id}");
+    }
+
+    async Task DeleteDeck(Deck d)
+    {
+        var ok = await JS.InvokeAsync<bool>(
+            "duelRecords.confirm",
+            $"Excluir o deck \"{d.Name}\"?"
+        );
+
+        if (!ok)
+        {
+            return;
+        }
+
+        await State.DeleteDeckAsync(d, DeckApiService);
+    }
+}

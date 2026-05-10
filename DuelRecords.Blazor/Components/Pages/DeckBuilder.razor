@@ -1,0 +1,208 @@
+@page "/decks/new"
+@page "/decks/{DeckId}"
+@using DuelRecords.Blazor.Models
+@using DuelRecords.Blazor.Services
+@using DuelRecords.Blazor.Components.Shared
+
+@inject AppState State
+@inject NavigationManager Nav
+@implements IDisposable
+@inject IDeckApiService DeckApiService
+
+@code {
+    [Parameter] public string? DeckId { get; set; }
+
+    Deck draft = new();
+    CardFilters filters = new();
+    string sort = "name-asc";
+    Card? openCard;
+
+    protected override void OnInitialized()
+    {
+        State.OnChange += StateHasChanged;
+        LoadDraft();
+    }
+    public void Dispose() => State.OnChange -= StateHasChanged;
+    protected override void OnParametersSet() => LoadDraft();
+
+    void LoadDraft()
+    {
+        if (string.IsNullOrEmpty(DeckId))
+        {
+            draft = new Deck { Id = "", Name = "Novo Deck", Cards = new() };
+        }
+        else
+        {
+            var d = State.Decks.FirstOrDefault(x => x.Id == DeckId);
+            draft = d == null
+                ? new Deck { Id = "", Name = "Novo Deck", Cards = new() }
+                : new Deck { Id = d.Id, Name = d.Name, UpdatedAgo = d.UpdatedAgo,
+                             Cards = d.Cards.Select(c => new DeckCardEntry { Id = c.Id, Section = c.Section }).ToList() };
+        }
+    }
+
+    List<Card> Filtered()
+    {
+        var arr = State.Cards.Where(c =>
+        {
+            if (!string.IsNullOrEmpty(filters.Q) && !c.Name.ToLower().Contains(filters.Q.ToLower())) return false;
+            if (!string.IsNullOrEmpty(filters.Type) && c.Type != filters.Type) return false;
+            if (!string.IsNullOrEmpty(filters.Attribute) && c.Attribute != filters.Attribute) return false;
+            if (!string.IsNullOrEmpty(filters.Level) && c.Level?.ToString() != filters.Level) return false;
+            if (!string.IsNullOrEmpty(filters.Kind) && c.Kind != filters.Kind) return false;
+            return true;
+        });
+        return sort == "name-desc"
+            ? arr.OrderByDescending(c => c.Name).ToList()
+            : arr.OrderBy(c => c.Name).ToList();
+    }
+
+    void AddCard(Card c)
+    {
+        var copies = draft.Cards.Count(x => x.Id == c.Id);
+        if (copies >= 3) return;
+        var section = CardCatalog.IsExtraKind(c) ? "extra" : "main";
+        draft.Cards.Add(new DeckCardEntry { Id = c.Id, Section = section });
+    }
+
+    void RemoveAt(int idx)
+    {
+        if (idx >= 0 && idx < draft.Cards.Count) draft.Cards.RemoveAt(idx);
+    }
+
+    void ClearFilters() { filters = new(); sort = "name-asc"; }
+
+    async Task Save()
+    {
+        await State.SaveDeckAsync(draft, DeckApiService);
+        Nav.NavigateTo("/decks");
+    }
+
+    List<string> Warnings()
+    {
+        var w = new List<string>();
+        var main = draft.Cards.Where(x => x.Section == "main").ToList();
+        var extra = draft.Cards.Where(x => x.Section == "extra").ToList();
+        var side = draft.Cards.Where(x => x.Section == "side").ToList();
+        if (main.Count < 40) w.Add($"Deck principal precisa de pelo menos 40 cartas (atual: {main.Count}).");
+        if (main.Count > 60) w.Add($"Deck principal excede o limite de 60 cartas (atual: {main.Count}).");
+        if (extra.Count > 15) w.Add($"Extra Deck excede 15 cartas (atual: {extra.Count}).");
+        if (side.Count > 15) w.Add($"Side Deck excede 15 cartas (atual: {side.Count}).");
+        var counts = draft.Cards.GroupBy(x => x.Id).ToDictionary(g => g.Key, g => g.Count());
+        foreach (var (id, n) in counts)
+        {
+            if (n > 3)
+            {
+                var name = State.GetCard(id)?.Name ?? id;
+                w.Add($"\"{name}\" excede 3 cópias ({n}).");
+            }
+        }
+        return w;
+    }
+
+    RenderFragment SlotGrid(string section, int max) => @<div class="deck-slot-grid"
+            style=@($"grid-template-columns: repeat({(section == "main" ? 10 : 5)}, 1fr)")>
+        @{
+            var entries = new List<(int idx, DeckCardEntry e)>();
+            for (int i = 0; i < draft.Cards.Count; i++)
+                if (draft.Cards[i].Section == section) entries.Add((i, draft.Cards[i]));
+            int rendered = 0;
+        }
+        @foreach (var (idx, entry) in entries)
+        {
+            var i = idx;
+            var card = State.GetCard(entry.Id);
+            if (card != null) { rendered++; <MiniCard Card="card" OnClick="() => RemoveAt(i)" /> }
+        }
+        @for (int i = rendered; i < max; i++) { <div class="deck-slot"></div> }
+    </div>;
+}
+
+<div class="page-head">
+    <div class="page-title">
+        <button class="icon-btn" @onclick='() => Nav.NavigateTo("/decks")' style="margin-right:4px">
+            <Icon Name="arrowLeft" Size="16" />
+        </button>
+        <div class="icon-bubble"><Icon Name="sword" Size="22" /></div>
+        <div>
+            <h1>@(string.IsNullOrEmpty(draft.Id) ? "Construir Deck" : "Editar Deck")</h1>
+            <div class="sub">Clique em uma carta para adicioná-la ao seu deck.</div>
+        </div>
+    </div>
+    <div style="display:flex;gap:10px">
+        <button class="btn-ghost" @onclick='() => Nav.NavigateTo("/decks")'>Cancelar</button>
+        <button class="btn-primary" @onclick="Save">
+            <Icon Name="sparkles" Size="15" /> Salvar deck
+        </button>
+    </div>
+</div>
+
+<div class="deck-builder">
+    <div class="album-side">
+        <FiltersBar Filters="filters" FiltersChanged="f => { filters = f; StateHasChanged(); }"
+                    Sort="sort" SortChanged="s => { sort = s; StateHasChanged(); }"
+                    OnClear="ClearFilters" />
+        <div class="card-grid" style="--cols:4">
+            @foreach (var c in Filtered())
+            {
+                var card = c;
+                var inDeck = draft.Cards.Count(x => x.Id == card.Id);
+                var displayCard = new Card
+                {
+                    Id = card.Id, Name = card.Name, Type = card.Type, Attribute = card.Attribute,
+                    Level = card.Level, Atk = card.Atk, Def = card.Def, Kind = card.Kind,
+                    Rarity = card.Rarity, Set = card.Set,
+                    Qty = inDeck > 0 ? inDeck : card.Qty
+                };
+                <CardTile Card="displayCard" OnClick="() => AddCard(card)" />
+            }
+        </div>
+    </div>
+
+    <aside class="deck-side">
+        <div>
+            <input class="input" style="width:100%;font-size:16px;font-weight:600;height:44px"
+                   value="@draft.Name" @oninput="e => draft.Name = e.Value?.ToString() ?? draft.Name"
+                   placeholder="Nome do deck" />
+        </div>
+
+        @{
+            var main = draft.Cards.Count(x => x.Section == "main");
+            var extra = draft.Cards.Count(x => x.Section == "extra");
+            var side = draft.Cards.Count(x => x.Section == "side");
+        }
+        <div class="deck-stats">
+            <div class="deck-stat @(main >= 40 && main <= 60 ? "ok" : main == 0 ? "" : "warn")">
+                <div class="label">Principal</div>
+                <div class="value">@main<span style="color:var(--text-dim);font-size:12px;font-weight:500">/40-60</span></div>
+            </div>
+            <div class="deck-stat @(extra <= 15 ? "" : "warn")">
+                <div class="label">Extra</div>
+                <div class="value">@extra<span style="color:var(--text-dim);font-size:12px;font-weight:500">/15</span></div>
+            </div>
+            <div class="deck-stat @(side <= 15 ? "" : "warn")">
+                <div class="label">Side</div>
+                <div class="value">@side<span style="color:var(--text-dim);font-size:12px;font-weight:500">/15</span></div>
+            </div>
+        </div>
+
+        <div class="deck-section">
+            <div class="deck-section-head"><span>Deck Principal</span><span>@main</span></div>
+            @SlotGrid("main", Math.Max(40, (int)Math.Ceiling(main / 10.0) * 10))
+        </div>
+        <div class="deck-section">
+            <div class="deck-section-head"><span>Extra Deck</span><span>@extra/15</span></div>
+            @SlotGrid("extra", 15)
+        </div>
+        <div class="deck-section">
+            <div class="deck-section-head"><span>Side Deck</span><span>@side/15</span></div>
+            @SlotGrid("side", 15)
+        </div>
+
+        @{ var warnings = Warnings(); }
+        <div class="warn-list @(warnings.Count == 0 ? "ok" : "")">
+            @if (warnings.Count == 0) { <span>✓ Deck dentro das regras oficiais</span> }
+            else { @foreach (var w in warnings) { <span>⚠ @w</span> } }
+        </div>
+    </aside>
+</div>

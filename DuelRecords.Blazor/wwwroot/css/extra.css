@@ -1,0 +1,54 @@
+/* Tweaks panel chrome — Blazor port */
+.tweaks-fab {
+    position: fixed; right: 22px; bottom: 22px;
+    width: 44px; height: 44px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, var(--accent-2), var(--accent));
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #fff;
+    display: grid; place-items: center;
+    box-shadow: 0 10px 24px -8px var(--accent-glow);
+    z-index: 999;
+}
+.tweaks-fab:hover { transform: translateY(-2px); }
+
+.tweaks-panel {
+    position: fixed; right: 22px; bottom: 80px;
+    width: 280px;
+    background: linear-gradient(180deg, var(--panel-2), var(--panel));
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    box-shadow: 0 24px 60px -12px rgba(0,0,0,0.6);
+    z-index: 999;
+}
+.tweaks-head {
+    display: flex; justify-content: space-between; align-items: center;
+    font-family: "Cinzel", serif; font-weight: 700;
+    margin-bottom: 12px;
+}
+.tweaks-section { margin-bottom: 14px; display: flex; flex-direction: column; gap: 6px; }
+.tweaks-label { font-size: 11.5px; color: var(--text-muted); font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+.tweaks-radio { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.tweaks-radio button {
+    padding: 7px 10px; border-radius: 8px;
+    background: var(--bg-deep); border: 1px solid var(--border-soft);
+    color: var(--text-muted); font-size: 12px; font-weight: 600;
+}
+.tweaks-radio button.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+.loading-splash {
+    position: fixed; inset: 0;
+    display: grid; place-items: center;
+    background: var(--bg, #0e0a1a);
+    color: #f4f1ff;
+}
+
+.modal-overlay {
+    z-index: 1000000 !important;
+}
+
+.modal {
+    position: relative;
+    z-index: 1000001 !important;
+}

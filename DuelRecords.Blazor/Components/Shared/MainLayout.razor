@@ -1,0 +1,160 @@
+@using DuelRecords.Blazor.Models
+@using DuelRecords.Blazor.Services
+@using DuelRecords.Blazor.Components.Shared
+@using Microsoft.AspNetCore.Components.Routing
+@using Microsoft.JSInterop
+
+@inherits LayoutComponentBase
+
+@inject AppState State
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+@implements IDisposable
+
+<div class="app">
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="brand-mark">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="1.6">
+                    <path d="M12 2l2.5 6.5L21 11l-6.5 2.5L12 20l-2.5-6.5L3 11l6.5-2.5z" fill="rgba(167,139,250,0.18)" />
+                    <circle cx="12" cy="11" r="2.5" fill="#a78bfa" stroke="none" />
+                </svg>
+            </div>
+
+            <div>
+                <div class="brand-name">DuelRecords</div>
+                <div class="brand-sub">Blazor</div>
+            </div>
+        </div>
+
+        <nav class="nav">
+            <button class="nav-item @(IsAlbumArea ? "active" : "")"
+                    @onclick='() => Nav.NavigateTo("/")'>
+                <Icon Name="album" Size="17" />
+                <span>Álbum</span>
+                <Icon Name="@(IsAlbumArea ? "chevUp" : "chevDown")" Size="14" />
+            </button>
+
+            @if (IsAlbumArea)
+            {
+                <div class="nav-sub">
+                    <button class="nav-item @(CurrentPath == "/" ? "active" : "")"
+                            @onclick='() => Nav.NavigateTo("/")'>
+                        <Icon Name="grid" Size="14" />
+                        <span>Coleção</span>
+                    </button>
+
+                    <button class="nav-item @(CurrentPath.StartsWith("/decks") || CurrentPath.StartsWith("/booster") ? "active" : "")"
+                            @onclick='() => Nav.NavigateTo("/decks")'>
+                        <Icon Name="sword" Size="14" />
+                        <span>Construtor de Decks</span>
+                    </button>
+                </div>
+            }
+
+            <button class="nav-item @(CurrentPath == "/stock" ? "active" : "")"
+                    @onclick='() => Nav.NavigateTo("/stock")'>
+                <Icon Name="box" Size="17" />
+                <span>Estoque</span>
+            </button>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="avatar">D</div>
+
+            <div class="meta">
+                <div class="name">DuelRecords</div>
+                <div class="role">Sua coleção, organizada.</div>
+            </div>
+        </div>
+    </aside>
+
+    <div class="main">
+        <div class="topbar">
+            <button class="icon-btn"
+                    @onclick="ToggleTheme"
+                    title="Alternar tema">
+                <Icon Name="@(theme == "dark" ? "sun" : "moon")" Size="16" />
+            </button>
+
+            <button class="text-btn" type="button">
+                <Icon Name="info" Size="14" />
+                Sobre
+            </button>
+        </div>
+
+        <div class="page">
+            @Body
+        </div>
+    </div>
+
+    <TweaksPanel />
+</div>
+
+@code {
+    private string theme = "dark";
+
+    private string CurrentPath
+    {
+        get
+        {
+            var path = new Uri(Nav.Uri).AbsolutePath;
+            return string.IsNullOrWhiteSpace(path) ? "/" : path;
+        }
+    }
+
+    private bool IsAlbumArea =>
+        CurrentPath == "/" ||
+        CurrentPath.StartsWith("/decks") ||
+        CurrentPath.StartsWith("/booster");
+
+    protected override async Task OnInitializedAsync()
+    {
+        State.OnChange += StateHasChanged;
+        Nav.LocationChanged += OnLocationChanged;
+
+        try
+        {
+            theme = await JS.InvokeAsync<string>("duelRecords.getTheme");
+        }
+        catch
+        {
+            theme = "dark";
+        }
+
+        try
+        {
+            await JS.InvokeVoidAsync("duelRecords.setTheme", theme);
+
+            var accent = AppState.AccentPresets.GetValueOrDefault(
+                State.Accent,
+                AppState.AccentPresets["purple"]
+            );
+
+            await JS.InvokeVoidAsync("duelRecords.setCssVar", "--accent", accent.c1);
+            await JS.InvokeVoidAsync("duelRecords.setCssVar", "--accent-2", accent.c2);
+            await JS.InvokeVoidAsync("duelRecords.setCssVar", "--accent-glow", accent.glow);
+        }
+        catch
+        {
+        }
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        StateHasChanged();
+    }
+
+    private async Task ToggleTheme()
+    {
+        theme = theme == "dark" ? "light" : "dark";
+        await JS.InvokeVoidAsync("duelRecords.setTheme", theme);
+    }
+
+    public void Dispose()
+    {
+        State.OnChange -= StateHasChanged;
+        Nav.LocationChanged -= OnLocationChanged;
+    }
+}

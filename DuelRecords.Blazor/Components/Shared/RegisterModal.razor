@@ -1,0 +1,284 @@
+@using DuelRecords.Blazor.Models
+@using DuelRecords.Blazor.Services
+@using Microsoft.AspNetCore.Components.Forms
+
+@inject ICardApiService CardApiService
+
+@code {
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private IBrowserFile? imagemSelecionada;
+    private string? nomeImagemSelecionada;
+    private bool salvando;
+    private string? mensagemErro;
+
+    CreateCardViewModel form = new()
+    {
+        Nome = "",
+        Tipo = "Monstro",
+        Atributo = "Trevas",
+        Nivel = 4,
+        Ataque = 1500,
+        Defesa = 1200,
+        TipoDeck = "Normal",
+        Raridade = "Comum",
+        Quantidade = 1,
+        Colecao = "",
+        Descricao = "",
+        ImagemUrl = null
+    };
+
+    bool IsMonster => form.Tipo == "Monstro";
+
+    private void OnImagemSelecionada(InputFileChangeEventArgs e)
+    {
+        imagemSelecionada = e.File;
+        nomeImagemSelecionada = imagemSelecionada.Name;
+        mensagemErro = null;
+    }
+
+    async Task SaveAndClose()
+    {
+        try
+        {
+            salvando = true;
+            mensagemErro = null;
+
+            if (!IsMonster)
+            {
+                form.Atributo = null;
+                form.Nivel = null;
+                form.Ataque = null;
+                form.Defesa = null;
+            }
+
+            if (imagemSelecionada != null)
+            {
+                await using var stream = imagemSelecionada.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
+
+                var imagemUrl = await CardApiService.UploadImagemAsync(
+                    stream,
+                    imagemSelecionada.Name
+                );
+
+                if (string.IsNullOrWhiteSpace(imagemUrl))
+                {
+                    mensagemErro = "A imagem não foi enviada corretamente.";
+                    return;
+                }
+
+                form.ImagemUrl = imagemUrl;
+            }
+
+            var sucesso = await CardApiService.CreateCardAsync(form);
+
+            if (sucesso)
+            {
+                await OnClose.InvokeAsync();
+            }
+            else
+            {
+                mensagemErro = "Não foi possível cadastrar o card.";
+            }
+        }
+        catch (Exception ex)
+        {
+            mensagemErro = $"Erro ao cadastrar card: {ex.Message}";
+        }
+        finally
+        {
+            salvando = false;
+        }
+    }
+}
+
+<div class="modal-overlay" @onclick="OnClose">
+    <div class="modal" @onclick:stopPropagation="true">
+
+        <div class="modal-head">
+            <h2>Cadastrar Card</h2>
+
+            <button class="close-btn" @onclick="OnClose">
+                <Icon Name="close" Size="16" />
+            </button>
+        </div>
+
+        <div class="form-grid">
+
+            <label class="full">
+                <span class="field-label">Nome do card</span>
+
+                <input class="input"
+                       placeholder="Ex: Dragão Branco de Olhos Azuis"
+                       value="@form.Nome"
+                       @oninput="e => form.Nome = e.Value?.ToString() ?? string.Empty" />
+            </label>
+
+            <label>
+                <span class="field-label">Tipo</span>
+
+                <select class="select"
+                        value="@form.Tipo"
+                        @onchange="e => form.Tipo = e.Value?.ToString() ?? form.Tipo">
+
+                    @foreach (var t in CardCatalog.Types)
+                    {
+                        <option value="@t">@t</option>
+                    }
+                </select>
+            </label>
+
+            <label>
+                <span class="field-label">Categoria</span>
+
+                <select class="select"
+                        value="@form.TipoDeck"
+                        @onchange="e => form.TipoDeck = e.Value?.ToString() ?? form.TipoDeck">
+
+                    @foreach (var k in CardCatalog.Kinds)
+                    {
+                        <option value="@k">@k</option>
+                    }
+                </select>
+            </label>
+
+            @if (IsMonster)
+            {
+                <label>
+                    <span class="field-label">Atributo</span>
+
+                    <select class="select"
+                            value="@form.Atributo"
+                            @onchange="e => form.Atributo = e.Value?.ToString()">
+
+                        @foreach (var a in CardCatalog.Attributes)
+                        {
+                            <option value="@a">@a</option>
+                        }
+                    </select>
+                </label>
+
+                <label>
+                    <span class="field-label">Nível</span>
+
+                    <select class="select"
+                            value="@form.Nivel"
+                            @onchange="e => form.Nivel = int.TryParse(e.Value?.ToString(), out var v) ? v : 4">
+
+                        @for (int l = 1; l <= 12; l++)
+                        {
+                            <option value="@l">@l</option>
+                        }
+                    </select>
+                </label>
+
+                <label>
+                    <span class="field-label">ATK</span>
+
+                    <input class="input"
+                           type="number"
+                           value="@form.Ataque"
+                           @oninput="e => form.Ataque = int.TryParse(e.Value?.ToString(), out var v) ? v : 0" />
+                </label>
+
+                <label>
+                    <span class="field-label">DEF</span>
+
+                    <input class="input"
+                           type="number"
+                           value="@form.Defesa"
+                           @oninput="e => form.Defesa = int.TryParse(e.Value?.ToString(), out var v) ? v : 0" />
+                </label>
+            }
+
+            <label>
+                <span class="field-label">Raridade</span>
+
+                <select class="select"
+                        value="@form.Raridade"
+                        @onchange="e => form.Raridade = e.Value?.ToString() ?? form.Raridade">
+
+                    @foreach (var r in CardCatalog.Rarities)
+                    {
+                        <option value="@r">@r</option>
+                    }
+                </select>
+            </label>
+
+            <label>
+                <span class="field-label">Quantidade</span>
+
+                <input class="input"
+                       type="number"
+                       min="1"
+                       value="@form.Quantidade"
+                       @oninput="e => form.Quantidade = int.TryParse(e.Value?.ToString(), out var v) ? v : 1" />
+            </label>
+
+            <label class="full">
+                <span class="field-label">Coleção</span>
+
+                <input class="input"
+                       placeholder="Ex: LDB-001"
+                       value="@form.Colecao"
+                       @oninput="e => form.Colecao = e.Value?.ToString() ?? string.Empty" />
+            </label>
+
+            <label class="full">
+                <span class="field-label">Descrição / Efeito</span>
+
+                <textarea placeholder="Descreva o efeito do card..."
+                          @oninput="e => form.Descricao = e.Value?.ToString()">@form.Descricao</textarea>
+            </label>
+
+            <div class="full">
+                <span class="field-label">Imagem do card</span>
+
+                <label class="upload-zone" style="margin-top:6px; cursor:pointer;">
+                    <Icon Name="upload" Size="22" />
+
+                    <div style="margin-top:8px">
+                        Clique para selecionar uma imagem
+                    </div>
+
+                    <div style="font-size:11px;margin-top:4px;color:var(--text-dim)">
+                        PNG, JPG até 5MB
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(nomeImagemSelecionada))
+                    {
+                        <div style="margin-top:10px;color:var(--accent-2);font-size:12px;">
+                            Imagem selecionada: @nomeImagemSelecionada
+                        </div>
+                    }
+
+                    <InputFile OnChange="OnImagemSelecionada"
+                               accept=".png,.jpg,.jpeg"
+                               style="display:none" />
+                </label>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(mensagemErro))
+            {
+                <div class="full" style="color:#ef4444;font-size:13px;">
+                    @mensagemErro
+                </div>
+            }
+
+        </div>
+
+        <div class="modal-foot">
+
+            <button class="btn-ghost" @onclick="OnClose" disabled="@salvando">
+                Cancelar
+            </button>
+
+            <button class="btn-primary" @onclick="SaveAndClose" disabled="@salvando">
+                <Icon Name="plus" Size="14" />
+                @(salvando ? "Salvando..." : "Cadastrar card")
+            </button>
+
+        </div>
+
+    </div>
+</div>

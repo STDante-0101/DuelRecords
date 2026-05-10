@@ -1,0 +1,320 @@
+@page "/"
+
+
+@using DuelRecords.Blazor.Models
+@using DuelRecords.Blazor.Services
+@using DuelRecords.Blazor.Components.Shared
+
+@inject AppState State
+@inject ICardApiService CardApiService
+@inject NavigationManager Nav
+
+@implements IDisposable
+
+<div class="page-head">
+    <div class="page-title">
+
+        <div class="icon-bubble">
+            <Icon Name="album" Size="22" />
+        </div>
+
+        <div>
+            <h1>Álbum de Cards</h1>
+
+            <p style="color:white;margin-top:10px">
+                @debugMessage
+            </p>
+
+            <div class="sub">
+                Visualize e gerencie sua coleção de cartas.
+            </div>
+        </div>
+
+    </div>
+
+    <button class="btn-primary"
+            @onclick="OpenRegisterModal">
+
+        <Icon Name="plus" Size="15" />
+        Cadastrar Card
+    </button>
+</div>
+
+<FiltersBar Filters="filters"
+            FiltersChanged="OnFiltersChanged"
+            Sort="sort"
+            SortChanged="OnSortChanged"
+            OnClear="ClearFilters" />
+
+@if (State.IsLoadingCards)
+{
+    <div class="empty">
+        <h3>Carregando cards...</h3>
+    </div>
+}
+else if (!string.IsNullOrWhiteSpace(State.CardsError))
+{
+    <div class="empty">
+        <h3>Erro ao carregar cards</h3>
+        <div>@State.CardsError</div>
+    </div>
+}
+else
+{
+    var filtered = ApplyFilters();
+
+    var perPage = State.Cols * 2;
+
+    var totalPages = Math.Max(
+        1,
+        (int)Math.Ceiling((double)filtered.Count / perPage)
+    );
+
+    var safePage = Math.Min(page, totalPages);
+
+    var startIdx = (safePage - 1) * perPage;
+
+    var visible = filtered
+        .Skip(startIdx)
+        .Take(perPage)
+        .ToList();
+
+    if (visible.Count == 0)
+    {
+        <div class="empty">
+            <h3>Nenhum card encontrado</h3>
+        </div>
+    }
+    else
+    {
+        <div class="card-grid" style="--cols:@State.Cols">
+
+            @foreach (var c in visible)
+            {
+                <div @onclick="() => OpenCard(c)">
+                    <CardTile Card="c" />
+                </div>
+            }
+
+        </div>
+    }
+
+    <div class="pagination">
+
+        <span></span>
+
+        <div class="pager">
+
+            <button class="page-btn"
+                    @onclick="PreviousPage">
+                &lt;
+            </button>
+
+            @for (int i = 1; i <= totalPages; i++)
+            {
+                var p = i;
+
+                <button class="page-btn @(p == safePage ? "active" : "")"
+                        @onclick="() => GoToPage(p)">
+
+                    @p
+
+                </button>
+            }
+
+            <button class="page-btn"
+                    @onclick="() => NextPage(totalPages)">
+                &gt;
+            </button>
+
+        </div>
+
+        <span>
+            Mostrando
+            @(filtered.Count == 0 ? 0 : startIdx + 1)
+            a
+            @Math.Min(startIdx + perPage, filtered.Count)
+            de
+            @filtered.Count cards
+        </span>
+
+    </div>
+}
+
+@if (openCard != null)
+{
+    <CardDetailModal Card="openCard"
+                     OnClose="CloseCardModal" />
+}
+
+@if (showRegister)
+{
+    <RegisterModal OnClose="OnRegisterModalClose" />
+}
+
+@code {
+
+    private int page = 1;
+
+    private string sort = "name-asc";
+
+    private CardFilters filters = new();
+
+    private Card? openCard;
+
+    private bool showRegister;
+
+    private string debugMessage = "Ainda não clicou";
+
+    protected override async Task OnInitializedAsync()
+    {
+        State.OnChange += StateHasChanged;
+
+        await State.LoadCardsFromApiAsync(CardApiService);
+    }
+
+    public void Dispose()
+    {
+        State.OnChange -= StateHasChanged;
+    }
+
+    private void TestClick()
+    {
+        debugMessage = $"CLICK FUNCIONOU {DateTime.Now:HH:mm:ss}";
+
+        Console.WriteLine(debugMessage);
+
+        StateHasChanged();
+    }
+
+    private void OpenRegisterModal()
+    {
+        showRegister = true;
+
+        Console.WriteLine("ABRIR MODAL");
+    }
+
+    private void OpenCard(Card card)
+    {
+        openCard = card;
+
+        Console.WriteLine($"ABRIR CARD {card.Name}");
+    }
+
+    private void CloseCardModal()
+    {
+        openCard = null;
+    }
+
+    private void PreviousPage()
+    {
+        page = Math.Max(1, page - 1);
+    }
+
+    private void NextPage(int totalPages)
+    {
+        page = Math.Min(totalPages, page + 1);
+    }
+
+    private void GoToPage(int p)
+    {
+        page = p;
+    }
+
+    private void OnFiltersChanged(CardFilters f)
+    {
+        filters = f;
+
+        page = 1;
+
+        StateHasChanged();
+    }
+
+    private void OnSortChanged(string s)
+    {
+        sort = s;
+
+        page = 1;
+
+        StateHasChanged();
+    }
+
+    private void ClearFilters()
+    {
+        filters = new();
+
+        sort = "name-asc";
+
+        page = 1;
+    }
+
+    private List<Card> ApplyFilters()
+    {
+        var arr = State.Cards
+            .Where(c =>
+            {
+                if (!string.IsNullOrEmpty(filters.Q) &&
+                    !c.Name.ToLower().Contains(filters.Q.ToLower()))
+                {
+                    return false;
+                }
+
+                if (!string.IsNullOrEmpty(filters.Type) &&
+                    c.Type != filters.Type)
+                {
+                    return false;
+                }
+
+                if (!string.IsNullOrEmpty(filters.Attribute) &&
+                    c.Attribute != filters.Attribute)
+                {
+                    return false;
+                }
+
+                if (!string.IsNullOrEmpty(filters.Level) &&
+                    c.Level?.ToString() != filters.Level)
+                {
+                    return false;
+                }
+
+                if (!string.IsNullOrEmpty(filters.Kind) &&
+                    c.Kind != filters.Kind)
+                {
+                    return false;
+                }
+
+                return true;
+            })
+            .ToList();
+
+        return sort switch
+        {
+            "name-asc" =>
+                arr.OrderBy(c => c.Name).ToList(),
+
+            "name-desc" =>
+                arr.OrderByDescending(c => c.Name).ToList(),
+
+            "atk-desc" =>
+                arr.OrderByDescending(c => c.Atk ?? 0).ToList(),
+
+            "atk-asc" =>
+                arr.OrderBy(c => c.Atk ?? 0).ToList(),
+
+            "qty-desc" =>
+                arr.OrderByDescending(c => c.Qty).ToList(),
+
+            "rarity" =>
+                arr.OrderByDescending(c => CardCatalog.RarityRank(c.Rarity)).ToList(),
+
+            _ => arr
+        };
+    }
+
+    private async Task OnRegisterModalClose()
+    {
+        showRegister = false;
+
+        await State.LoadCardsFromApiAsync(CardApiService);
+    }
+}

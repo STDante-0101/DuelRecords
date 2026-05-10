@@ -7,7 +7,9 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 builder.Services.AddScoped<HttpClient>();
+builder.Services.AddScoped<IDeckApiService, DeckApiService>();
 builder.Services.AddScoped<ICardApiService, CardApiService>();
+builder.Services.AddScoped<AppState>();
 
 var app = builder.Build();
 
@@ -16,7 +18,7 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Error");
 }
 
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection();
 
 app.UseStaticFiles();
 app.UseAntiforgery();
