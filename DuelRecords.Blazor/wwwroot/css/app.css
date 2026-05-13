@@ -614,7 +614,7 @@ input, select, textarea { font-family: inherit; }
 
 .modal-foot-layout {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end;
     align-items: center;
     gap: 16px;
     width: 100%;
