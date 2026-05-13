@@ -11,108 +11,112 @@
 
 @implements IDisposable
 
-<div class="page-head">
-    <div class="page-title">
-        <div class="icon-bubble">
-            <Icon Name="album" Size="22" />
-        </div>
+<div class="page-fixed-top">
+    <div class="page-head">
+        <div class="page-title">
+            <div class="icon-bubble">
+                <Icon Name="album" Size="22" />
+            </div>
 
-        <div>
-            <h1>Álbum de Cards</h1>
+            <div>
+                <h1>Álbum de Cards</h1>
 
-            <p style="color:#fbbf24;margin:6px 0 0 0;font-size:13px">
-                @debugMessage
-            </p>
-
-            <div class="sub">
-                Visualize e gerencie sua coleção de cartas.
+                <div class="sub">
+                    Visualize e gerencie sua coleção de cartas.
+                </div>
             </div>
         </div>
+
+        <button class="btn-primary" @onclick="OpenRegisterModal">
+            <Icon Name="plus" Size="15" />
+            Cadastrar Card
+        </button>
     </div>
 
-    <button class="btn-primary" @onclick="OpenRegisterModal">
-        <Icon Name="plus" Size="15" />
-        Cadastrar Card
-    </button>
+    <FiltersBar Filters="filters"
+                FiltersChanged="OnFiltersChanged"
+                Sort="sort"
+                SortChanged="OnSortChanged"
+                OnClear="ClearFilters" />
 </div>
 
-<FiltersBar Filters="filters"
-            FiltersChanged="OnFiltersChanged"
-            Sort="sort"
-            SortChanged="OnSortChanged"
-            OnClear="ClearFilters" />
-
-@if (State.IsLoadingCards)
-{
-    <div class="empty">
-        <h3>Carregando cards...</h3>
-    </div>
-}
-else if (!string.IsNullOrWhiteSpace(State.CardsError))
-{
-    <div class="empty">
-        <h3>Erro ao carregar cards</h3>
-        <div>@State.CardsError</div>
-    </div>
-}
-else
-{
-    var filtered = ApplyFilters();
-    var perPage = State.Cols * 2;
-    var totalPages = Math.Max(1, (int)Math.Ceiling((double)filtered.Count / perPage));
-    var safePage = Math.Min(page, totalPages);
-    var startIdx = (safePage - 1) * perPage;
-    var visible = filtered.Skip(startIdx).Take(perPage).ToList();
-
-    if (visible.Count == 0)
+<div class="page-scroll-content">
+    @if (State.IsLoadingCards)
     {
         <div class="empty">
-            <h3>Nenhum card encontrado</h3>
+            <h3>Carregando cards...</h3>
+        </div>
+    }
+    else if (!string.IsNullOrWhiteSpace(State.CardsError))
+    {
+        <div class="empty">
+            <h3>Erro ao carregar cards</h3>
+            <div>@State.CardsError</div>
         </div>
     }
     else
     {
-        <div class="card-grid" style="--cols:@State.Cols">
-            @foreach (var c in visible)
-            {
-                var card = c;
+        var filtered = ApplyFilters();
 
-                <CardTile Card="card"
-                          OnClick="() => OpenCard(card)" />
-            }
+        var rowsPerPage = 6;
+        var perPage = State.Cols * rowsPerPage;
+
+        var totalPages = Math.Max(1, (int)Math.Ceiling((double)filtered.Count / perPage));
+        var safePage = Math.Min(page, totalPages);
+        var startIdx = (safePage - 1) * perPage;
+        var visible = filtered.Skip(startIdx).Take(perPage).ToList();
+
+        @if (visible.Count == 0)
+        {
+            <div class="empty">
+                <h3>Nenhum card encontrado</h3>
+            </div>
+        }
+        else
+        {
+            <div class="card-grid" style="--cols:@State.Cols">
+                @foreach (var c in visible)
+                {
+                    var card = c;
+
+                    <CardTile Card="card"
+                              OnClick="() => OpenCard(card)"
+                              OnDetails="OpenCard" />
+                }
+            </div>
+        }
+
+        <div class="pagination">
+            <span></span>
+
+            <div class="pager">
+                <button class="page-btn" @onclick="PreviousPage">
+                    &lt;
+                </button>
+
+                @for (int i = 1; i <= totalPages; i++)
+                {
+                    var p = i;
+
+                    <button class="page-btn @(p == safePage ? "active" : "")"
+                            @onclick="() => GoToPage(p)">
+                        @p
+                    </button>
+                }
+
+                <button class="page-btn" @onclick="() => NextPage(totalPages)">
+                    &gt;
+                </button>
+            </div>
+
+            <span>
+                Mostrando @(filtered.Count == 0 ? 0 : startIdx + 1)
+                a @Math.Min(startIdx + perPage, filtered.Count)
+                de @filtered.Count cards
+            </span>
         </div>
     }
-
-    <div class="pagination">
-        <span></span>
-
-        <div class="pager">
-            <button class="page-btn" @onclick="PreviousPage">
-                &lt;
-            </button>
-
-            @for (int i = 1; i <= totalPages; i++)
-            {
-                var p = i;
-
-                <button class="page-btn @(p == safePage ? "active" : "")"
-                        @onclick="() => GoToPage(p)">
-                    @p
-                </button>
-            }
-
-            <button class="page-btn" @onclick="() => NextPage(totalPages)">
-                &gt;
-            </button>
-        </div>
-
-        <span>
-            Mostrando @(filtered.Count == 0 ? 0 : startIdx + 1)
-            a @Math.Min(startIdx + perPage, filtered.Count)
-            de @filtered.Count cards
-        </span>
-    </div>
-}
+</div>
 
 @if (openCard != null)
 {
@@ -133,7 +137,6 @@ else
     private CardFilters filters = new();
     private Card? openCard;
     private bool showRegister;
-    private string debugMessage = "Aguardando ação";
 
     protected override async Task OnInitializedAsync()
     {
@@ -143,7 +146,6 @@ else
 
     private async Task OnCardUpdatedAsync(Card card)
     {
-        debugMessage = $"Card atualizado: {card.Name}";
         await State.LoadCardsFromApiAsync(CardApiService);
         StateHasChanged();
     }
@@ -161,7 +163,6 @@ else
     private void OpenCard(Card card)
     {
         openCard = card;
-        debugMessage = $"Card aberto: {card.Name} - Id {card.Id}";
     }
 
     private void CloseCardModal()
@@ -171,27 +172,23 @@ else
 
     private async Task DeleteCardAsync(Card card)
     {
-        debugMessage = $"Tentando excluir: {card.Name} - Id {card.Id}";
-        StateHasChanged();
-
         if (!int.TryParse(card.Id, out var cardId))
         {
-            debugMessage = $"Id inválido para exclusão: {card.Id}";
-            await JS.InvokeVoidAsync("alert", debugMessage);
+            await JS.InvokeVoidAsync("alert", $"Id inválido para exclusão: {card.Id}");
             return;
         }
 
         var sucesso = await CardApiService.DeleteCardAsync(cardId);
 
-        debugMessage = $"Resultado exclusão: {sucesso}";
-        await JS.InvokeVoidAsync("alert", debugMessage);
-
         if (sucesso)
         {
             openCard = null;
             await State.LoadCardsFromApiAsync(CardApiService);
-            debugMessage = $"Card excluído: {card.Name}";
             StateHasChanged();
+        }
+        else
+        {
+            await JS.InvokeVoidAsync("alert", "Não foi possível excluir o card.");
         }
     }
 

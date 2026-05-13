@@ -1,0 +1,380 @@
+﻿/* Deck Builder */
+
+/* =========================
+   DESKTOP / HORIZONTAL
+========================= */
+
+.deck-builder-layout {
+    display: grid;
+    grid-template-columns: 1fr 420px;
+    gap: 20px;
+    height: calc(100vh - 180px);
+    overflow: hidden;
+}
+
+.builder-left {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.builder-top-fixed {
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: var(--bg);
+    padding-bottom: 14px;
+}
+
+.builder-cards-scroll {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 8px;
+}
+
+.builder-right {
+    overflow: hidden;
+    min-height: 0;
+}
+
+.deck-side-scroll {
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 8px;
+}
+
+.mobile-deck-toggle {
+    display: none;
+}
+
+.compact-extra .deck-slot-grid,
+.compact-side .deck-slot-grid {
+    gap: 6px !important;
+}
+
+.compact-side .deck-slot {
+    aspect-ratio: 59 / 86;
+}
+
+.builder-cards-scroll::-webkit-scrollbar,
+.deck-side-scroll::-webkit-scrollbar {
+    width: 10px;
+}
+
+.builder-cards-scroll::-webkit-scrollbar-track,
+.deck-side-scroll::-webkit-scrollbar-track {
+    background: rgba(255,255,255,0.04);
+    border-radius: 999px;
+}
+
+.builder-cards-scroll::-webkit-scrollbar-thumb,
+.deck-side-scroll::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #7c3aed, #a855f7);
+    border-radius: 999px;
+}
+
+.deck-target-selector {
+    display: flex;
+    gap: 10px;
+    margin: 14px 0 18px 0;
+}
+
+.target-btn {
+    flex: 1;
+    height: 42px;
+    border-radius: 12px;
+    border: 1px solid rgba(139, 92, 246, .25);
+    background: #12071f;
+    color: #cbb7ff;
+    font-weight: 700;
+    transition: .2s;
+}
+
+    .target-btn:hover {
+        border-color: #8b5cf6;
+        color: white;
+    }
+
+    .target-btn.active {
+        background: linear-gradient(180deg, #8b5cf6, #6d28d9);
+        border-color: #a78bfa;
+        color: white;
+        box-shadow: 0 0 18px rgba(139, 92, 246, .35);
+    }
+
+.deck-warning {
+    margin-top: 12px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: rgba(239, 68, 68, .12);
+    border: 1px solid rgba(239, 68, 68, .35);
+    color: #fca5a5;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+@media (max-width: 1500px) {
+    .deck-builder-layout {
+        grid-template-columns: 1fr 360px;
+    }
+}
+
+/* =========================
+   MOBILE / VERTICAL
+========================= */
+
+@media (max-width: 1200px) and (orientation: portrait) {
+
+    .deck-builder-layout {
+        grid-template-columns: 1fr;
+        height: 100vh;
+        overflow: hidden;
+    }
+
+    .builder-left {
+        overflow: hidden;
+    }
+
+    .builder-cards-scroll {
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding-bottom: 180px;
+    }
+
+    .builder-right {
+        display: block;
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 150px;
+        z-index: 500;
+        padding: 18px 12px 12px;
+        background: linear-gradient( 180deg, rgba(31,22,64,.98), rgba(10,6,18,.99) );
+        border-top: 1px solid rgba(139,92,246,.45);
+        box-shadow: 0 -18px 50px -24px var(--accent-glow);
+        transition: height .25s ease;
+        overflow: hidden;
+    }
+
+        .builder-right.mobile-expanded {
+            height: 50vh;
+        }
+
+    .deck-side-scroll {
+        height: 100%;
+        overflow: hidden;
+        padding-top: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    /* BOTÃO FLUTUANTE */
+
+    .mobile-deck-toggle {
+        display: grid;
+        place-items: center;
+        position: absolute;
+        top: -24px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 52px;
+        height: 52px;
+        border-radius: 999px;
+        border: 3px solid rgba(196,181,253,.85);
+        background: linear-gradient( 180deg, #c084fc, #8b5cf6 );
+        color: white;
+        font-size: 20px;
+        font-weight: 900;
+        z-index: 999;
+        cursor: pointer;
+        box-shadow: 0 0 0 8px rgba(17,10,30,.96), 0 10px 30px -12px rgba(139,92,246,.8);
+        transition: transform .2s ease, box-shadow .2s ease, background .2s ease;
+    }
+
+        .mobile-deck-toggle:hover {
+            transform: translateX(-50%) scale(1.05);
+            box-shadow: 0 0 0 8px rgba(17,10,30,.96), 0 14px 40px -14px rgba(139,92,246,.95);
+        }
+
+        .mobile-deck-toggle:active {
+            transform: translateX(-50%) scale(.96);
+        }
+
+    .builder-right {
+        overflow: visible !important;
+    }
+    /* INPUT */
+
+    .builder-right .input {
+        height: 42px !important;
+        font-size: 15px !important;
+        font-weight: 700 !important;
+        margin-bottom: 8px;
+    }
+
+    /* BOTÕES */
+
+    .deck-target-selector {
+        display: flex;
+        gap: 8px;
+        margin: 0;
+    }
+
+    .target-btn {
+        height: 40px;
+        border-radius: 10px;
+    }
+
+    /* STATS */
+
+    .deck-stats {
+        display: grid;
+        grid-template-columns: repeat(3,1fr);
+        gap: 8px;
+    }
+
+    .deck-stat {
+        padding: 8px;
+    }
+
+        .deck-stat .value {
+            font-size: 16px;
+        }
+
+    /* FECHADO */
+
+    .builder-right:not(.mobile-expanded) .deck-section,
+    .builder-right:not(.mobile-expanded) .deck-warning {
+        display: none;
+    }
+
+    /* EXPANDIDO */
+
+    .builder-right.mobile-expanded .deck-side-scroll {
+        overflow: hidden;
+    }
+
+    /* ESCONDE TODOS */
+
+    .builder-right.mobile-expanded .deck-section {
+        display: none;
+    }
+
+        /* MOSTRA SOMENTE O ATIVO */
+
+        .builder-right.mobile-expanded
+        .deck-section.mobile-active-section {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-height: 0;
+        }
+
+    /* GRID */
+
+    .builder-right.mobile-expanded .deck-slot-grid {
+        display: grid;
+        width: 100%;
+        gap: 3px;
+        padding: 4px;
+        align-content: start;
+    }
+
+    /* MAIN */
+
+    .builder-right.mobile-expanded
+    .deck-section.mobile-active-section:not(.compact-extra):not(.compact-side)
+    .deck-slot-grid {
+        grid-template-columns: repeat(10, 1fr);
+    }
+
+    /* EXTRA + SIDE */
+
+    .builder-right.mobile-expanded
+    .compact-extra.mobile-active-section
+    .deck-slot-grid,
+    .builder-right.mobile-expanded
+    .compact-side.mobile-active-section
+    .deck-slot-grid {
+        grid-template-columns: repeat(5, 1fr);
+    }
+
+    /* SLOT */
+
+    .builder-right.mobile-expanded .deck-slot {
+        width: 100%;
+    }
+
+    /* MAIN */
+
+    .builder-right.mobile-expanded
+    .deck-section.mobile-active-section:not(.compact-extra):not(.compact-side)
+    .deck-slot {
+        max-height: 112px;
+    }
+
+    /* EXTRA + SIDE */
+
+    .builder-right.mobile-expanded
+    .compact-extra.mobile-active-section
+    .deck-slot,
+    .builder-right.mobile-expanded
+    .compact-side.mobile-active-section
+    .deck-slot {
+        max-height: 128px;
+    }
+
+    /* CARD */
+
+    .mini-deck-card {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        padding: 0 !important;
+    }
+
+        .mini-deck-card .card-art {
+            width: 100%;
+            height: 100%;
+            display: flex;
+        }
+
+        .mini-deck-card img,
+        .mini-deck-card picture {
+            width: 100%;
+            height: 100%;
+            object-fit: fill !important;
+        }
+    /* TITULOS */
+
+    .builder-right.mobile-expanded .deck-section-head {
+        font-size: 11px;
+        margin-bottom: 6px;
+        opacity: .85;
+        padding: 0 2px;
+    }
+
+    /* REMOVE SCROLL INTERNO */
+
+    .builder-right.mobile-expanded .deck-side-scroll,
+    .builder-right.mobile-expanded .deck-section,
+    .builder-right.mobile-expanded .deck-slot-grid {
+        overflow: hidden !important;
+    }
+
+    .builder-right.mobile-expanded .deck-slot-grid {
+        background: rgba(5, 3, 15, .35);
+        border: 1px solid rgba(139,92,246,.12);
+        border-radius: 12px;
+    }
+
+    .builder-right.mobile-expanded .deck-section {
+        gap: 6px;
+    }
+}

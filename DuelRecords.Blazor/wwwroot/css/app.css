@@ -49,15 +49,16 @@
 * { box-sizing: border-box; }
 
 html, body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  background: var(--bg);
-  color: var(--text);
-  font-family: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-  font-feature-settings: "ss01", "cv11";
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    font-feature-settings: "ss01", "cv11";
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
 }
 
 #root { min-height: 100vh; }
@@ -72,13 +73,11 @@ input, select, textarea { font-family: inherit; }
 
 /* App shell */
 .app {
-  display: grid;
-  grid-template-columns: 240px 1fr;
-  min-height: 100vh;
-  background:
-    radial-gradient(1200px 600px at 80% -10%, rgba(139, 92, 246, 0.10), transparent 60%),
-    radial-gradient(900px 500px at -10% 110%, rgba(34, 211, 238, 0.06), transparent 60%),
-    var(--bg);
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    height: 100vh;
+    overflow: hidden;
+    background: radial-gradient(1200px 600px at 80% -10%, rgba(139, 92, 246, 0.10), transparent 60%), radial-gradient(900px 500px at -10% 110%, rgba(34, 211, 238, 0.06), transparent 60%), var(--bg);
 }
 
 .sidebar {
@@ -183,8 +182,11 @@ input, select, textarea { font-family: inherit; }
 
 /* Main area */
 .main {
-  min-width: 0;
-  display: flex; flex-direction: column;
+    min-width: 0;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 .topbar {
   display: flex; align-items: center;
@@ -215,13 +217,17 @@ input, select, textarea { font-family: inherit; }
 .text-btn:hover { color: var(--text); border-color: var(--border); }
 
 .page {
-  padding: 22px 32px 40px;
+    padding: 22px 32px 40px;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
 /* Page header */
 .page-head {
   display: flex; align-items: flex-end; justify-content: space-between;
-  margin-bottom: 22px; gap: 18px;
+  margin-bottom: 16px; gap: 18px;
   flex-wrap: wrap;
 }
 .page-title {
@@ -291,14 +297,14 @@ input, select, textarea { font-family: inherit; }
 
 /* Filters bar */
 .filters {
-  display: grid;
-  grid-template-columns: 1.6fr repeat(4, 1fr) 1.1fr auto;
-  gap: 14px;
-  padding: 16px 18px;
-  background: linear-gradient(180deg, var(--panel-2), var(--panel));
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  margin-bottom: 22px;
+    display: grid;
+    grid-template-columns: 1.6fr repeat(4, 1fr) 1.1fr auto;
+    gap: 14px;
+    padding: 16px 18px;
+    background: linear-gradient(180deg, var(--panel-2), var(--panel));
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    margin-bottom: 22px;
 }
 .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .field-label {
@@ -340,9 +346,11 @@ input, select, textarea { font-family: inherit; }
 
 /* Card grid */
 .card-grid {
-  display: grid;
-  grid-template-columns: repeat(var(--cols, 6), minmax(0, 1fr));
-  gap: 22px;
+    display: grid;
+    grid-template-columns: repeat(var(--cols, 6), minmax(0, 1fr));
+    gap: 22px;
+    align-items: start;
+    align-content: start;
 }
 
 .card-tile {
@@ -361,6 +369,14 @@ input, select, textarea { font-family: inherit; }
   border-color: var(--accent);
   box-shadow: var(--shadow-pop);
   z-index: 2;
+}
+
+.album-scroll-area {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 8px;
+    padding-bottom: 24px;
 }
 
 .card-frame {
@@ -587,12 +603,51 @@ input, select, textarea { font-family: inherit; }
 [data-theme="light"] .upload-zone { background: #fff; }
 .upload-zone:hover { border-color: var(--accent); color: var(--text); }
 
+/* Modal */
+
 .modal-foot {
   display: flex; justify-content: flex-end; gap: 10px;
   margin-top: 24px;
   padding-top: 20px;
   border-top: 1px solid var(--border-soft);
 }
+
+.modal-foot-layout {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+}
+
+.modal-left-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.danger-btn {
+    border-color: #7f1d1d !important;
+    color: #fca5a5 !important;
+}
+
+.modal-close-bottom {
+    width: 42px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    border: 1px solid rgba(139, 92, 246, .22);
+    background: rgba(255,255,255,.02);
+    color: var(--text-dim);
+    transition: .18s ease;
+}
+
+    .modal-close-bottom:hover {
+        background: rgba(139, 92, 246, .14);
+        color: white;
+    }
 
 /* Deck builder */
 .deck-builder {
@@ -881,3 +936,61 @@ input, select, textarea { font-family: inherit; }
   .sidebar { display: none; }
   .deck-builder { grid-template-columns: 1fr; }
 }
+
+.page-fixed-top {
+    flex-shrink: 0;
+    background: var(--bg);
+    padding-bottom: 2px;
+    z-index: 50;
+}
+
+.page-scroll-content {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 8px;
+    padding-bottom: 24px;
+}
+
+.page-scroll-content {
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent) rgba(139, 92, 246, 0.12);
+}
+
+ .page-scroll-content::-webkit-scrollbar {
+     width: 12px;
+ }
+
+ .page-scroll-content::-webkit-scrollbar-track {
+     background: rgba(139, 92, 246, 0.08);
+     border-radius: 999px;
+     border: 1px solid var(--border-soft);
+ }
+
+ .page-scroll-content::-webkit-scrollbar-thumb {
+     background: linear-gradient(180deg, var(--accent-2), var(--accent));
+     border-radius: 999px;
+     border: 3px solid var(--bg);
+     box-shadow: 0 0 12px var(--accent-glow);
+ }
+
+ .page-scroll-content::-webkit-scrollbar-thumb:hover {
+     background: linear-gradient(180deg, var(--accent), var(--accent-2));
+ }
+
+@media (orientation: portrait) {
+    .card-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .cols-select:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+        filter: grayscale(0.35);
+    }
+
+    .cols-select::after {
+        content: "";
+    }
+}
+

@@ -106,7 +106,7 @@ public class AppState
 
     public void SetCols(int cols)
     {
-        Cols = cols;
+        Cols = Math.Clamp(cols, 4, 12);
         Notify();
     }
 
@@ -128,16 +128,28 @@ public class AppState
 
     private Deck MapDeckFromApi(DeckApiModel apiDeck)
     {
+        var cards = new List<DeckCardEntry>();
+
+        foreach (var c in apiDeck.Cards)
+        {
+            var quantidade = Math.Max(1, c.Quantidade);
+
+            for (int i = 0; i < quantidade; i++)
+            {
+                cards.Add(new DeckCardEntry
+                {
+                    Id = c.CardId.ToString(),
+                    Section = c.Secao.ToLower()
+                });
+            }
+        }
+
         return new Deck
         {
             Id = apiDeck.Id.ToString(),
             Name = apiDeck.Nome,
             UpdatedAgo = "agora",
-            Cards = apiDeck.Cards.Select(c => new DeckCardEntry
-            {
-                Id = c.CardId.ToString(),
-                Section = c.Secao.ToLower()
-            }).ToList()
+            Cards = cards
         };
     }
 

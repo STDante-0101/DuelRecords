@@ -1,4 +1,7 @@
 @using DuelRecords.Blazor.Models
+@using DuelRecords.Blazor.Services
+
+@inject AppState State
 
 @code {
     [Parameter] public CardFilters Filters { get; set; } = new();
@@ -7,63 +10,120 @@
     [Parameter] public EventCallback<string> SortChanged { get; set; }
     [Parameter] public EventCallback OnClear { get; set; }
 
+    private bool IsPortrait => true;
+
     async Task Update(Action<CardFilters> mutate)
     {
         var next = new CardFilters
         {
-            Q = Filters.Q, Type = Filters.Type, Attribute = Filters.Attribute,
-            Level = Filters.Level, Kind = Filters.Kind
+            Q = Filters.Q,
+            Type = Filters.Type,
+            Attribute = Filters.Attribute,
+            Level = Filters.Level,
+            Kind = Filters.Kind
         };
+
         mutate(next);
+
         await FiltersChanged.InvokeAsync(next);
+    }
+
+    private void OnColsChanged(ChangeEventArgs e)
+    {
+        if (IsPortrait)
+        {
+            State.SetCols(4);
+            return;
+        }
+
+        if (int.TryParse(e.Value?.ToString(), out var cols))
+        {
+            State.SetCols(cols);
+        }
     }
 }
 
 <div class="filters">
     <div class="field">
         <span class="field-label">Buscar por nome</span>
+
         <div class="input-wrap">
-            <input class="input" placeholder="Digite o nome do card…"
+            <input class="input"
+                   placeholder="Digite o nome do card…"
                    value="@Filters.Q"
                    @oninput="async e => await Update(f => f.Q = e.Value?.ToString())" />
-            <span class="icon"><Icon Name="search" Size="15" /></span>
+
+            <span class="icon">
+                <Icon Name="search" Size="15" />
+            </span>
         </div>
     </div>
+
     <div class="field">
         <span class="field-label">Tipo</span>
-        <select class="select" value="@Filters.Type"
+
+        <select class="select"
+                value="@Filters.Type"
                 @onchange="async e => await Update(f => f.Type = e.Value?.ToString())">
             <option value="">Todos</option>
-            @foreach (var t in CardCatalog.Types) { <option value="@t">@t</option> }
+
+            @foreach (var t in CardCatalog.Types)
+            {
+                <option value="@t">@t</option>
+            }
         </select>
     </div>
+
     <div class="field">
         <span class="field-label">Atributo</span>
-        <select class="select" value="@Filters.Attribute"
+
+        <select class="select"
+                value="@Filters.Attribute"
                 @onchange="async e => await Update(f => f.Attribute = e.Value?.ToString())">
             <option value="">Todos</option>
-            @foreach (var a in CardCatalog.Attributes) { <option value="@a">@a</option> }
+
+            @foreach (var a in CardCatalog.Attributes)
+            {
+                <option value="@a">@a</option>
+            }
         </select>
     </div>
+
     <div class="field">
         <span class="field-label">Nível</span>
-        <select class="select" value="@Filters.Level"
+
+        <select class="select"
+                value="@Filters.Level"
                 @onchange="async e => await Update(f => f.Level = e.Value?.ToString())">
             <option value="">Todos</option>
-            @for (int l = 1; l <= 12; l++) { <option value="@l">@l</option> }
+
+            @for (int l = 1; l <= 12; l++)
+            {
+                <option value="@l">@l</option>
+            }
         </select>
     </div>
+
     <div class="field">
         <span class="field-label">Tipo de Card</span>
-        <select class="select" value="@Filters.Kind"
+
+        <select class="select"
+                value="@Filters.Kind"
                 @onchange="async e => await Update(f => f.Kind = e.Value?.ToString())">
             <option value="">Todos</option>
-            @foreach (var k in CardCatalog.Kinds) { <option value="@k">@k</option> }
+
+            @foreach (var k in CardCatalog.Kinds)
+            {
+                <option value="@k">@k</option>
+            }
         </select>
     </div>
+
     <div class="field">
         <span class="field-label">Ordenar por</span>
-        <select class="select" value="@Sort"
+
+        <select class="select"
+                value="@Sort"
                 @onchange='async e => await SortChanged.InvokeAsync(e.Value?.ToString() ?? "name-asc")'>
             <option value="name-asc">Nome (A-Z)</option>
             <option value="name-desc">Nome (Z-A)</option>
@@ -73,7 +133,9 @@
             <option value="rarity">Raridade</option>
         </select>
     </div>
+
     <button class="clear-btn" @onclick="OnClear">
-        <Icon Name="filter" Size="14" /> Limpar filtros
+        <Icon Name="filter" Size="14" />
+        Limpar filtros
     </button>
 </div>

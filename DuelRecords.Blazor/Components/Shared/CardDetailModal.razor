@@ -331,49 +331,67 @@
         </div>
 
         <div class="modal-foot">
+
             @if (!editing)
             {
-                <div style="display:flex;gap:10px">
-                    <button class="btn-ghost"
-                            style="border-color:#7f1d1d;color:#fca5a5"
-                            @onclick="DeleteCard">
-                        <Icon Name="trash" Size="14" />
-                        Excluir
-                    </button>
+                <div class="modal-foot-layout">
 
-                    <button class="btn-ghost"
-                            @onclick="StartEdit">
-                        <Icon Name="edit" Size="14" />
-                        Editar
-                    </button>
+                    <div class="modal-left-actions">
+
+                        <button class="btn-ghost danger-btn"
+                                @onclick="DeleteCard">
+
+                            <Icon Name="trash" Size="14" />
+                            Excluir
+                        </button>
+
+                        <button class="btn-ghost"
+                                @onclick="StartEdit">
+
+                            <Icon Name="edit" Size="14" />
+                            Editar
+                        </button>
+
+                        @if (ShowAddToDeck)
+                        {
+                            <button class="btn-primary"
+                                    @onclick="() => OnAddToDeck.InvokeAsync(Card)">
+
+                                <Icon Name="plus" Size="14" />
+                                Adicionar ao deck
+                            </button>
+                        }
+
+                    </div>
+
                 </div>
-
-                @if (ShowAddToDeck)
-                {
-                    <button class="btn-primary"
-                            @onclick="() => OnAddToDeck.InvokeAsync(Card)">
-                        <Icon Name="plus" Size="14" />
-                        Adicionar ao deck
-                    </button>
-                }
             }
             else
             {
-                <div style="display:flex;gap:10px">
-                    <button class="btn-ghost"
-                            @onclick="CancelEdit"
-                            disabled="@saving">
-                        Cancelar
-                    </button>
+                <div class="modal-foot-layout">
 
-                    <button class="btn-primary"
-                            @onclick="SaveEdit"
-                            disabled="@saving">
-                        <Icon Name="edit" Size="14" />
-                        @(saving ? "Salvando..." : "Salvar alterações")
-                    </button>
+                    <div class="modal-left-actions">
+
+                        <button class="btn-ghost"
+                                @onclick="CancelEdit"
+                                disabled="@saving">
+
+                            Cancelar
+                        </button>
+
+                        <button class="btn-primary"
+                                @onclick="SaveEdit"
+                                disabled="@saving">
+
+                            <Icon Name="edit" Size="14" />
+                            @(saving ? "Salvando..." : "Salvar alterações")
+                        </button>
+
+                    </div>
+
                 </div>
             }
+
         </div>
     </div>
 </div>

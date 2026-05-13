@@ -8,11 +8,30 @@
     public EventCallback OnClick { get; set; }
 
     [Parameter]
+    public EventCallback<Card> OnDetails { get; set; }
+
+    [Parameter]
     public bool AlwaysShowQty { get; set; }
+
+    private async Task HandleCardClick()
+    {
+        if (OnClick.HasDelegate)
+        {
+            await OnClick.InvokeAsync();
+        }
+    }
+
+    private async Task HandleDetailsClick()
+    {
+        if (OnDetails.HasDelegate)
+        {
+            await OnDetails.InvokeAsync(Card);
+        }
+    }
 }
 
 <div class="card-tile @(AlwaysShowQty ? "always-show-qty" : "")"
-     @onclick="() => OnClick.InvokeAsync()">
+     @onclick="HandleCardClick">
 
     <div class="qty-chip">
         <span class="x">×</span> @Card.Qty
@@ -23,8 +42,9 @@
     </div>
 
     <div class="quick-actions">
-        <button class="quick-btn"
-                @onclick="() => OnClick.InvokeAsync()"
+        <button type="button"
+                class="quick-btn"
+                @onclick="HandleDetailsClick"
                 @onclick:stopPropagation="true">
 
             <Icon Name="eye" Size="13" />

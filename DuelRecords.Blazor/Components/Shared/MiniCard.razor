@@ -5,6 +5,10 @@
     [Parameter] public EventCallback OnClick { get; set; }
 }
 
-<div class="deck-slot filled" @onclick="OnClick" title="@Card.Name" style="position:relative">
+<div class="deck-slot filled mini-deck-card"
+     @onclick="OnClick"
+     title="@Card.Name">
+
     <CardArt Card="Card" Compact="true" />
+
 </div>
