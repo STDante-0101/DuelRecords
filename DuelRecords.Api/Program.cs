@@ -1,17 +1,18 @@
 using DuelRecords.Api.Data;
 using DuelRecords.Api.Services;
 using Microsoft.EntityFrameworkCore;
+using DuelRecords.Api.Services.YgoServices;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<ICardService, CardService>();
 builder.Services.AddScoped<IDeckService, DeckService>();
+builder.Services.AddScoped<YgoImportService>();
 
 var app = builder.Build();
 

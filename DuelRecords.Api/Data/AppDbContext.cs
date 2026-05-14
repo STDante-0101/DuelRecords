@@ -1,5 +1,6 @@
 ﻿using DuelRecords.Api.Models;
 using Microsoft.EntityFrameworkCore;
+using DuelRecords.Api.Models.Ygo;
 
 namespace DuelRecords.Api.Data
 {
@@ -12,6 +13,14 @@ namespace DuelRecords.Api.Data
         public DbSet<Deck> Decks { get; set; }
 
         public DbSet<DeckCard> DeckCards { get; set; }
+
+        public DbSet<YgoCard> YgoCards { get; set; }
+
+        public DbSet<YgoCardImage> YgoCardImages { get; set; }
+
+        public DbSet<YgoCardSet> YgoCardSets { get; set; }
+
+        public DbSet<YgoCardPrice> YgoCardPrices { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -37,6 +46,28 @@ namespace DuelRecords.Api.Data
                     deckCard.Secao
                 })
                 .IsUnique();
+
+            modelBuilder.Entity<YgoCard>()
+                .HasIndex(c => c.YgoId)
+                .IsUnique();
+
+            modelBuilder.Entity<YgoCardImage>()
+                .HasOne(i => i.YgoCard)
+                .WithMany(c => c.Images)
+                .HasForeignKey(i => i.YgoCardId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<YgoCardSet>()
+                .HasOne(s => s.YgoCard)
+                .WithMany(c => c.Sets)
+                .HasForeignKey(s => s.YgoCardId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<YgoCardPrice>()
+                .HasOne(p => p.YgoCard)
+                .WithOne(c => c.Prices)
+                .HasForeignKey<YgoCardPrice>(p => p.YgoCardId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }
