@@ -16,5 +16,5 @@ public class YgoCardSet
 
     public string? SetRarityCode { get; set; }
 
-    public decimal? SetPrice { get; set; }
+    public string? SetPrice { get; set; }
 }

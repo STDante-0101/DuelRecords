@@ -17,5 +17,5 @@ public class YgoCardSetDto
     public string? SetRarityCode { get; set; }
 
     [JsonPropertyName("set_price")]
-    public decimal? SetPrice { get; set; }
+    public string? SetPrice { get; set; }
 }
