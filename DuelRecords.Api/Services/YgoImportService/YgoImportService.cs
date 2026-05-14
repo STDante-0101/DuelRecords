@@ -1,5 +1,5 @@
 ﻿using System.Text.Json;
-using DuelRecords.Api.Data;
+using DuelRecords.Api.Data.Contexts;
 using DuelRecords.Api.DTOs.Ygo;
 using DuelRecords.Api.Models.Ygo;
 using Microsoft.EntityFrameworkCore;
@@ -8,9 +8,9 @@ namespace DuelRecords.Api.Services.YgoServices;
 
 public class YgoImportService
 {
-    private readonly AppDbContext _context;
+    private readonly AlexandriaDbContext _context;
 
-    public YgoImportService(AppDbContext context)
+    public YgoImportService(AlexandriaDbContext context)
     {
         _context = context;
     }

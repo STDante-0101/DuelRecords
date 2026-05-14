@@ -1,15 +1,17 @@
 ﻿using DuelRecords.Api.Data;
+using DuelRecords.Api.Data.Contexts;
 using DuelRecords.Api.DTOs;
 using DuelRecords.Api.Models;
 using Microsoft.EntityFrameworkCore;
+
 
 namespace DuelRecords.Api.Services;
 
 public class CardService : ICardService
 {
-    private readonly AppDbContext _context;
+    private readonly MundoZeroDbContext _context;
 
-    public CardService(AppDbContext context)
+    public CardService(MundoZeroDbContext context)
     {
         _context = context;
     }

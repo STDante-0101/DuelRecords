@@ -1,4 +1,4 @@
-﻿using DuelRecords.Api.Data;
+﻿using DuelRecords.Api.Data.Contexts;
 using DuelRecords.Api.DTOs.Decks;
 using DuelRecords.Api.Models;
 using Microsoft.EntityFrameworkCore;
@@ -7,9 +7,9 @@ namespace DuelRecords.Api.Services;
 
 public class DeckService : IDeckService
 {
-    private readonly AppDbContext _context;
+    private readonly MundoZeroDbContext _context;
 
-    public DeckService(AppDbContext context)
+    public DeckService(MundoZeroDbContext context)
     {
         _context = context;
     }
