@@ -17,8 +17,8 @@ public class YgoAdminController : ControllerBase
     [HttpPost("importar-json")]
     public async Task<IActionResult> ImportarJson()
     {
-        //var filePath = "/mnt/user/appdata/duelrecords/backups/ygo/cards.json";
-        var filePath = @"E:\Projetos\DuelRecords\cards.json";
+        var filePath = "/mnt/user/appdata/duelrecords/backups/ygo/cards.json";
+        //var filePath = @"E:\Projetos\DuelRecords\cards.json";
 
         var total = await _importService.ImportFromJsonFileAsync(filePath);
 
