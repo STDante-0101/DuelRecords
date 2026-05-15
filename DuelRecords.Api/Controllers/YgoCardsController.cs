@@ -1,5 +1,7 @@
-﻿using DuelRecords.Api.Services.YgoCatalogService;
+﻿using DuelRecords.Api.DTOs.Ygo;
+using DuelRecords.Api.Services.YgoCatalogService;
 using Microsoft.AspNetCore.Mvc;
+
 
 namespace DuelRecords.Api.Controllers;
 
@@ -33,5 +35,14 @@ public class YgoCardsController : ControllerBase
         }
 
         return Ok(card);
+    }
+
+    [HttpGet("buscar-por-setcode")]
+    public async Task<ActionResult<List<YgoSetSuggestionDto>>> BuscarPorSetCode(
+    [FromQuery] string codigo)
+    {
+        var result = await _catalogService.SearchBySetCodeAsync(codigo);
+
+        return Ok(result);
     }
 }

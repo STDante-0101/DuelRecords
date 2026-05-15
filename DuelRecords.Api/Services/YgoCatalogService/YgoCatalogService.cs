@@ -49,6 +49,37 @@ public class YgoCatalogService
             .ToListAsync();
     }
 
+    public async Task<List<YgoSetSuggestionDto>> SearchBySetCodeAsync(string code)
+    {
+        if (string.IsNullOrWhiteSpace(code) || code.Trim().Length < 2)
+        {
+            return new List<YgoSetSuggestionDto>();
+        }
+
+        var search = code.Trim().ToLower();
+
+        return await _context.YgoCardSets
+            .AsNoTracking()
+            .Where(set =>
+                set.SetCode.ToLower().Contains(search))
+            .OrderBy(set => set.SetCode)
+            .Take(10)
+            .Select(set => new YgoSetSuggestionDto
+            {
+                YgoId = set.YgoCard.YgoId,
+                Name = set.YgoCard.Name,
+                SetCode = set.SetCode,
+                SetName = set.SetName,
+                SetRarity = set.SetRarity,
+
+                ImageUrlSmall = set.YgoCard.Images
+                    .OrderBy(img => img.Id)
+                    .Select(img => img.ImageUrlSmall)
+                    .FirstOrDefault()
+            })
+            .ToListAsync();
+    }
+
     public async Task<YgoCardDetailsDto?> GetByYgoIdAsync(int ygoId)
     {
         return await _context.YgoCards
