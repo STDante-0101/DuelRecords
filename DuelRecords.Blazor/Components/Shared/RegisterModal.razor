@@ -214,11 +214,12 @@
 
         <div class="form-grid">
 
-            <label>
+            <label style="width:100%;">
                 <span class="field-label">Nome do card</span>
 
-                <div style="position:relative;">
+                <div style="position:relative;width:100%;">
                     <input class="input"
+                           style="width:100%;"
                            placeholder="Ex: Dragão Branco de Olhos Azuis"
                            value="@form.Nome"
                            @oninput="OnNomeInput" />
@@ -232,26 +233,52 @@
 
                     @if (sugestoesYgo.Count > 0)
                     {
-                        <div style="position:absolute;z-index:20;left:0;right:0;margin-top:6px;background:#120b24;border:1px solid rgba(139,92,246,.35);border-radius:12px;overflow:hidden;box-shadow:0 18px 40px rgba(0,0,0,.35);">
+                        <div style="position:absolute;
+                            z-index:20;
+                            left:0;
+                            right:0;
+                            margin-top:6px;
+                            background:#120b24;
+                            border:1px solid rgba(139,92,246,.35);
+                            border-radius:12px;
+                            overflow:hidden;
+                            box-shadow:0 18px 40px rgba(0,0,0,.35);">
+
                             @foreach (var sugestao in sugestoesYgo)
                             {
                                 <button type="button"
                                         @onclick="() => SelecionarSugestaoYgo(sugestao)"
-                                        style="width:100%;display:flex;gap:10px;align-items:center;padding:10px 12px;background:transparent;border:0;color:var(--text);text-align:left;cursor:pointer;">
+                                        style="width:100%;
+                                    display:flex;
+                                    gap:10px;
+                                    align-items:center;
+                                    padding:10px 12px;
+                                    background:transparent;
+                                    border:0;
+                                    color:var(--text);
+                                    text-align:left;
+                                    cursor:pointer;">
+
                                     @if (!string.IsNullOrWhiteSpace(sugestao.ImageUrlSmall))
                                     {
                                         <img src="@sugestao.ImageUrlSmall"
-                                             style="width:34px;height:48px;object-fit:cover;border-radius:4px;" />
+                                             style="width:34px;
+                                        height:48px;
+                                        object-fit:cover;
+                                        border-radius:4px;" />
                                     }
 
                                     <span>
                                         <strong>@sugestao.Name</strong><br />
+
                                         <small style="color:var(--text-dim);">
                                             @sugestao.Type
+
                                             @if (sugestao.Attack.HasValue)
                                             {
                                                 <span> • ATK @sugestao.Attack</span>
                                             }
+
                                             @if (sugestao.Defense.HasValue)
                                             {
                                                 <span> / DEF @sugestao.Defense</span>
@@ -264,7 +291,6 @@
                     }
                 </div>
             </label>
-
             <label>
                 <span class="field-label">Coleção</span>
 

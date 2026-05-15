@@ -20,11 +20,16 @@ public class YgoCatalogService
             return new List<YgoCardSuggestionDto>();
         }
 
-        var search = name.Trim().ToLower();
+        var terms = name
+            .Trim()
+            .ToLower()
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
         return await _context.YgoCards
             .AsNoTracking()
-            .Where(card => card.Name.ToLower().Contains(search))
+            .Where(card =>
+                terms.All(term =>
+                    card.Name.ToLower().Contains(term)))
             .OrderBy(card => card.Name)
             .Take(10)
             .Select(card => new YgoCardSuggestionDto
@@ -63,14 +68,17 @@ public class YgoCatalogService
                 Defense = card.Defense,
                 Level = card.Level,
                 HumanReadableCardType = card.HumanReadableCardType,
+
                 ImageUrl = card.Images
                     .OrderBy(img => img.Id)
                     .Select(img => img.ImageUrl)
                     .FirstOrDefault(),
+
                 ImageUrlSmall = card.Images
                     .OrderBy(img => img.Id)
                     .Select(img => img.ImageUrlSmall)
                     .FirstOrDefault(),
+
                 ImageUrlCropped = card.Images
                     .OrderBy(img => img.Id)
                     .Select(img => img.ImageUrlCropped)
