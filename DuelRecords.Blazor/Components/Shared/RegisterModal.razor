@@ -16,7 +16,7 @@
     private bool salvando;
     private string? mensagemErro;
 
-    CreateCardViewModel form = new()
+    private CreateCardViewModel form = new()
     {
         Nome = "",
         Tipo = "Monstro",
@@ -32,7 +32,7 @@
         ImagemUrl = null
     };
 
-    bool IsMonster => form.Tipo == "Monstro";
+    private bool IsMonster => form.Tipo == "Monstro";
 
     private void OnImagemSelecionada(InputFileChangeEventArgs e)
     {
@@ -41,12 +41,24 @@
         mensagemErro = null;
     }
 
-    async Task SaveAndClose()
+    private async Task SaveAndClose()
     {
         try
         {
             salvando = true;
             mensagemErro = null;
+
+            Console.WriteLine("=== REGISTER MODAL: INICIANDO CADASTRO ===");
+            Console.WriteLine($"Nome: {form.Nome}");
+            Console.WriteLine($"Tipo: {form.Tipo}");
+            Console.WriteLine($"ImagemUrl atual: {form.ImagemUrl}");
+            Console.WriteLine($"Imagem local selecionada: {nomeImagemSelecionada}");
+
+            if (string.IsNullOrWhiteSpace(form.Nome))
+            {
+                mensagemErro = "Informe o nome do card.";
+                return;
+            }
 
             if (!IsMonster)
             {
@@ -58,6 +70,8 @@
 
             if (imagemSelecionada != null)
             {
+                Console.WriteLine("Tentando enviar imagem local...");
+
                 await using var stream = imagemSelecionada.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
 
                 var imagemUrl = await CardApiService.UploadImagemAsync(
@@ -67,17 +81,20 @@
 
                 if (string.IsNullOrWhiteSpace(imagemUrl))
                 {
-                    mensagemErro = "A imagem não foi enviada corretamente.";
+                    mensagemErro = "A imagem local não foi enviada corretamente. Tente cadastrar sem selecionar imagem manual.";
                     return;
                 }
 
                 form.ImagemUrl = imagemUrl;
             }
 
+            Console.WriteLine("Chamando CreateCardAsync...");
+
             var sucesso = await CardApiService.CreateCardAsync(form);
 
             if (sucesso)
             {
+                Console.WriteLine("Card cadastrado com sucesso.");
                 await OnClose.InvokeAsync();
             }
             else
@@ -87,6 +104,9 @@
         }
         catch (Exception ex)
         {
+            Console.WriteLine("ERRO NO REGISTER MODAL:");
+            Console.WriteLine(ex.ToString());
+
             mensagemErro = $"Erro ao cadastrar card: {ex.Message}";
         }
         finally
@@ -112,6 +132,12 @@
         {
             sugestoesYgo = await YgoCatalogApiService.SearchAsync(form.Nome);
         }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Erro ao buscar sugestões YGO:");
+            Console.WriteLine(ex.ToString());
+            sugestoesYgo.Clear();
+        }
         finally
         {
             buscandoYgo = false;
@@ -120,48 +146,58 @@
 
     private async Task SelecionarSugestaoYgo(YgoCardSuggestionDto sugestao)
     {
-        var detalhes = await YgoCatalogApiService.GetByYgoIdAsync(sugestao.YgoId);
-
-        if (detalhes == null)
+        try
         {
-            return;
+            var detalhes = await YgoCatalogApiService.GetByYgoIdAsync(sugestao.YgoId);
+
+            if (detalhes == null)
+            {
+                return;
+            }
+
+            ygoIdSelecionado = detalhes.YgoId;
+
+            form.Nome = detalhes.Name;
+            form.Descricao = detalhes.Description;
+            form.ImagemUrl = detalhes.ImageUrl;
+
+            form.Tipo = detalhes.Type.Contains("Monster", StringComparison.OrdinalIgnoreCase)
+                ? "Monstro"
+                : detalhes.Type.Contains("Spell", StringComparison.OrdinalIgnoreCase)
+                    ? "Magia"
+                    : detalhes.Type.Contains("Trap", StringComparison.OrdinalIgnoreCase)
+                        ? "Armadilha"
+                        : form.Tipo;
+
+            form.Atributo = detalhes.Attribute switch
+            {
+                "DARK" => "Trevas",
+                "LIGHT" => "Luz",
+                "EARTH" => "Terra",
+                "WATER" => "Água",
+                "FIRE" => "Fogo",
+                "WIND" => "Vento",
+                "DIVINE" => "Divino",
+                _ => form.Atributo
+            };
+
+            form.Nivel = detalhes.Level;
+            form.Ataque = detalhes.Attack;
+            form.Defesa = detalhes.Defense;
+
+            form.TipoDeck = detalhes.Type.Contains("Normal", StringComparison.OrdinalIgnoreCase)
+                ? "Normal"
+                : form.TipoDeck;
+
+            sugestoesYgo.Clear();
         }
-
-        ygoIdSelecionado = detalhes.YgoId;
-
-        form.Nome = detalhes.Name;
-        form.Descricao = detalhes.Description;
-        form.ImagemUrl = detalhes.ImageUrl;
-
-        form.Tipo = detalhes.Type.Contains("Monster", StringComparison.OrdinalIgnoreCase)
-            ? "Monstro"
-            : detalhes.Type.Contains("Spell", StringComparison.OrdinalIgnoreCase)
-                ? "Magia"
-                : detalhes.Type.Contains("Trap", StringComparison.OrdinalIgnoreCase)
-                    ? "Armadilha"
-                    : form.Tipo;
-
-        form.Atributo = detalhes.Attribute switch
+        catch (Exception ex)
         {
-            "DARK" => "Trevas",
-            "LIGHT" => "Luz",
-            "EARTH" => "Terra",
-            "WATER" => "Água",
-            "FIRE" => "Fogo",
-            "WIND" => "Vento",
-            "DIVINE" => "Divino",
-            _ => form.Atributo
-        };
+            Console.WriteLine("Erro ao selecionar carta YGO:");
+            Console.WriteLine(ex.ToString());
 
-        form.Nivel = detalhes.Level;
-        form.Ataque = detalhes.Attack;
-        form.Defesa = detalhes.Defense;
-
-        form.TipoDeck = detalhes.Type.Contains("Normal", StringComparison.OrdinalIgnoreCase)
-            ? "Normal"
-            : form.TipoDeck;
-
-        sugestoesYgo.Clear();
+            mensagemErro = $"Erro ao carregar detalhes da carta: {ex.Message}";
+        }
     }
 }
 
@@ -178,7 +214,7 @@
 
         <div class="form-grid">
 
-            <label class="full">
+            <label>
                 <span class="field-label">Nome do card</span>
 
                 <div style="position:relative;">
@@ -227,6 +263,15 @@
                         </div>
                     }
                 </div>
+            </label>
+
+            <label>
+                <span class="field-label">Coleção</span>
+
+                <input class="input"
+                       placeholder="Ex: LDB-001"
+                       value="@form.Colecao"
+                       @oninput="e => form.Colecao = e.Value?.ToString() ?? string.Empty" />
             </label>
 
             <label>
@@ -331,15 +376,6 @@
             </label>
 
             <label class="full">
-                <span class="field-label">Coleção</span>
-
-                <input class="input"
-                       placeholder="Ex: LDB-001"
-                       value="@form.Colecao"
-                       @oninput="e => form.Colecao = e.Value?.ToString() ?? string.Empty" />
-            </label>
-
-            <label class="full">
                 <span class="field-label">Descrição / Efeito</span>
 
                 <textarea placeholder="Descreva o efeito do card..."
@@ -348,6 +384,15 @@
 
             <div class="full">
                 <span class="field-label">Imagem do card</span>
+
+                @if (!string.IsNullOrWhiteSpace(form.ImagemUrl) && imagemSelecionada == null)
+                {
+                    <div style="display:flex;gap:12px;align-items:center;margin:8px 0 10px;color:var(--text-dim);font-size:12px;">
+                        <img src="@form.ImagemUrl"
+                             style="width:54px;height:76px;object-fit:cover;border-radius:6px;border:1px solid rgba(139,92,246,.35);" />
+                        <span>Imagem carregada automaticamente da Alexandria.</span>
+                    </div>
+                }
 
                 <label class="upload-zone" style="margin-top:6px; cursor:pointer;">
                     <Icon Name="upload" Size="22" />
@@ -375,7 +420,7 @@
 
             @if (!string.IsNullOrWhiteSpace(mensagemErro))
             {
-                <div class="full" style="color:#ef4444;font-size:13px;">
+                <div class="full" style="color:#ef4444;font-size:13px;white-space:pre-wrap;">
                     @mensagemErro
                 </div>
             }

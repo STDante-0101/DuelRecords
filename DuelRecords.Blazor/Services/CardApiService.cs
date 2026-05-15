@@ -34,9 +34,33 @@ public class CardApiService : ICardApiService
 
     public async Task<bool> CreateCardAsync(CreateCardViewModel card)
     {
-        var response = await _httpClient.PostAsJsonAsync($"{_apiBaseUrl}/api/cards", card);
+        try
+        {
+            Console.WriteLine("=== INICIANDO CREATE CARD ===");
+            Console.WriteLine($"Nome: {card.Nome}");
+            Console.WriteLine($"Tipo: {card.Tipo}");
 
-        return response.IsSuccessStatusCode;
+            var response = await _httpClient.PostAsJsonAsync(
+                $"{_apiBaseUrl}/api/cards",
+                card
+            );
+
+            Console.WriteLine($"Status Code: {response.StatusCode}");
+
+            var responseBody = await response.Content.ReadAsStringAsync();
+
+            Console.WriteLine("Resposta API:");
+            Console.WriteLine(responseBody);
+
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("ERRO AO CADASTRAR CARD:");
+            Console.WriteLine(ex.ToString());
+
+            return false;
+        }
     }
 
     public async Task<bool> UpdateCardAsync(int id, Card card)
