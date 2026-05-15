@@ -3,6 +3,7 @@ using DuelRecords.Api.Services;
 using Microsoft.EntityFrameworkCore;
 using DuelRecords.Api.Services.YgoServices;
 using DuelRecords.Api.Data.Contexts;
+using DuelRecords.Api.Services.YgoCatalogService;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,6 +19,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<ICardService, CardService>();
 builder.Services.AddScoped<IDeckService, DeckService>();
 builder.Services.AddScoped<YgoImportService>();
+builder.Services.AddScoped<YgoCatalogService>();
 
 var app = builder.Build();
 
