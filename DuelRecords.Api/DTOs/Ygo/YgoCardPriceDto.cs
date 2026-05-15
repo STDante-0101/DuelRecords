@@ -5,17 +5,17 @@ namespace DuelRecords.Api.DTOs.Ygo;
 public class YgoCardPriceDto
 {
     [JsonPropertyName("cardmarket_price")]
-    public decimal? CardMarketPrice { get; set; }
+    public string? CardMarketPrice { get; set; }
 
     [JsonPropertyName("tcgplayer_price")]
-    public decimal? TcgPlayerPrice { get; set; }
+    public string? TcgPlayerPrice { get; set; }
 
     [JsonPropertyName("ebay_price")]
-    public decimal? EbayPrice { get; set; }
+    public string? EbayPrice { get; set; }
 
     [JsonPropertyName("amazon_price")]
-    public decimal? AmazonPrice { get; set; }
+    public string? AmazonPrice { get; set; }
 
     [JsonPropertyName("coolstuffinc_price")]
-    public decimal? CoolStuffIncPrice { get; set; }
+    public string? CoolStuffIncPrice { get; set; }
 }

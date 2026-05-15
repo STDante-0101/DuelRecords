@@ -8,13 +8,13 @@ public class YgoCardPrice
 
     public YgoCard YgoCard { get; set; } = null!;
 
-    public decimal? CardMarketPrice { get; set; }
+    public string? CardMarketPrice { get; set; }
 
-    public decimal? TcgPlayerPrice { get; set; }
+    public string? TcgPlayerPrice { get; set; }
 
-    public decimal? EbayPrice { get; set; }
+    public string? EbayPrice { get; set; }
 
-    public decimal? AmazonPrice { get; set; }
+    public string? AmazonPrice { get; set; }
 
-    public decimal? CoolStuffIncPrice { get; set; }
+    public string? CoolStuffIncPrice { get; set; }
 }
