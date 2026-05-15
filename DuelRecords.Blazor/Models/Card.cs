@@ -52,7 +52,7 @@ public static class CardCatalog
     public static readonly string[] Types = { "Monstro", "Magia", "Armadilha" };
     public static readonly string[] Attributes = { "Trevas", "Luz", "Fogo", "Água", "Terra", "Vento", "Divino" };
     public static readonly string[] Rarities = { "Comum", "Rara", "Super Rara", "Ultra Rara", "Secreta" };
-    public static readonly string[] Kinds = { "Normal", "Efeito", "Fusão", "Ritual", "Sincro", "XYZ", "Link", "Pêndulo" };
+    public static readonly string[] Kinds = { "Normal", "Efeito", "Fusão", "Ritual", "Sincro", "XYZ", "Link", "Pêndulo", "Magia Rápida", "Magia Contínua", "Magia de Campo", "Magia de Equipamento", "Armadilha Contínua", "Armadilha de Resposta" };
 
     public static readonly Dictionary<string, string[]> ArtPalettes = new()
     {

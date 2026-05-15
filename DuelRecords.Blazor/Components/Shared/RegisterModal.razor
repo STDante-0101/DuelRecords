@@ -43,6 +43,72 @@
         mensagemErro = null;
     }
 
+    private string ResolverTipoPrincipal(string? ygoType)
+    {
+        if (string.IsNullOrWhiteSpace(ygoType))
+            return "Monstro";
+
+        if (ygoType.Contains("Spell", StringComparison.OrdinalIgnoreCase))
+            return "Magia";
+
+        if (ygoType.Contains("Trap", StringComparison.OrdinalIgnoreCase))
+            return "Armadilha";
+
+        return "Monstro";
+    }
+
+    private string ResolverCategoria(string? ygoType)
+    {
+        if (string.IsNullOrWhiteSpace(ygoType))
+            return "Normal";
+
+        // MONSTROS
+        if (ygoType.Contains("Fusion", StringComparison.OrdinalIgnoreCase))
+            return "Fusão";
+
+        if (ygoType.Contains("Synchro", StringComparison.OrdinalIgnoreCase))
+            return "Sincro";
+
+        if (ygoType.Contains("XYZ", StringComparison.OrdinalIgnoreCase))
+            return "XYZ";
+
+        if (ygoType.Contains("Link", StringComparison.OrdinalIgnoreCase))
+            return "Link";
+
+        if (ygoType.Contains("Pendulum", StringComparison.OrdinalIgnoreCase))
+            return "Pêndulo";
+
+        if (ygoType.Contains("Ritual", StringComparison.OrdinalIgnoreCase))
+            return "Ritual";
+
+        if (ygoType.Contains("Effect", StringComparison.OrdinalIgnoreCase))
+            return "Efeito";
+
+        // MAGIAS
+        if (ygoType.Contains("Quick-Play", StringComparison.OrdinalIgnoreCase))
+            return "Magia Rápida";
+
+        if (ygoType.Contains("Continuous", StringComparison.OrdinalIgnoreCase)
+            && ygoType.Contains("Spell", StringComparison.OrdinalIgnoreCase))
+            return "Magia Contínua";
+
+        if (ygoType.Contains("Field", StringComparison.OrdinalIgnoreCase))
+            return "Magia de Campo";
+
+        if (ygoType.Contains("Equip", StringComparison.OrdinalIgnoreCase))
+            return "Magia de Equipamento";
+
+        // ARMADILHAS
+        if (ygoType.Contains("Counter", StringComparison.OrdinalIgnoreCase))
+            return "Armadilha de Resposta";
+
+        if (ygoType.Contains("Continuous", StringComparison.OrdinalIgnoreCase)
+            && ygoType.Contains("Trap", StringComparison.OrdinalIgnoreCase))
+            return "Armadilha Contínua";
+
+        return "Normal";
+    }
+
     private async Task SaveAndClose()
     {
         try
@@ -185,13 +251,8 @@
             form.Descricao = detalhes.Description;
             form.ImagemUrl = detalhes.ImageUrl;
 
-            form.Tipo = detalhes.Type.Contains("Monster", StringComparison.OrdinalIgnoreCase)
-                ? "Monstro"
-                : detalhes.Type.Contains("Spell", StringComparison.OrdinalIgnoreCase)
-                    ? "Magia"
-                    : detalhes.Type.Contains("Trap", StringComparison.OrdinalIgnoreCase)
-                        ? "Armadilha"
-                        : form.Tipo;
+            form.Tipo = ResolverTipoPrincipal(detalhes.Type);
+            form.TipoDeck = ResolverCategoria(detalhes.Type);
 
             form.Atributo = detalhes.Attribute switch
             {
@@ -209,11 +270,8 @@
             form.Ataque = detalhes.Attack;
             form.Defesa = detalhes.Defense;
 
-            form.TipoDeck = detalhes.Type.Contains("Normal", StringComparison.OrdinalIgnoreCase)
-                ? "Normal"
-                : form.TipoDeck;
-
             sugestoesYgo.Clear();
+            sugestoesSetCode.Clear();
         }
         catch (Exception ex)
         {
@@ -239,6 +297,7 @@
 
             form.Nome = detalhes.Name;
             form.Colecao = sugestao.SetCode;
+
             form.Raridade = string.IsNullOrWhiteSpace(sugestao.SetRarity)
                 ? form.Raridade
                 : sugestao.SetRarity;
@@ -246,13 +305,8 @@
             form.Descricao = detalhes.Description;
             form.ImagemUrl = detalhes.ImageUrl;
 
-            form.Tipo = detalhes.Type.Contains("Monster", StringComparison.OrdinalIgnoreCase)
-                ? "Monstro"
-                : detalhes.Type.Contains("Spell", StringComparison.OrdinalIgnoreCase)
-                    ? "Magia"
-                    : detalhes.Type.Contains("Trap", StringComparison.OrdinalIgnoreCase)
-                        ? "Armadilha"
-                        : form.Tipo;
+            form.Tipo = ResolverTipoPrincipal(detalhes.Type);
+            form.TipoDeck = ResolverCategoria(detalhes.Type);
 
             form.Atributo = detalhes.Attribute switch
             {
@@ -270,10 +324,14 @@
             form.Ataque = detalhes.Attack;
             form.Defesa = detalhes.Defense;
 
+            sugestoesYgo.Clear();
             sugestoesSetCode.Clear();
         }
         catch (Exception ex)
         {
+            Console.WriteLine("Erro ao selecionar Set Code:");
+            Console.WriteLine(ex.ToString());
+
             mensagemErro = $"Erro ao carregar Set Code: {ex.Message}";
         }
     }
