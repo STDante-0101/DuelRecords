@@ -3,10 +3,14 @@
 @using Microsoft.AspNetCore.Components.Forms
 
 @inject ICardApiService CardApiService
+@inject YgoCatalogApiService YgoCatalogApiService
 
 @code {
     [Parameter] public EventCallback OnClose { get; set; }
 
+    private List<YgoCardSuggestionDto> sugestoesYgo = new();
+    private bool buscandoYgo;
+    private int? ygoIdSelecionado;
     private IBrowserFile? imagemSelecionada;
     private string? nomeImagemSelecionada;
     private bool salvando;
@@ -90,6 +94,75 @@
             salvando = false;
         }
     }
+
+    private async Task OnNomeInput(ChangeEventArgs e)
+    {
+        form.Nome = e.Value?.ToString() ?? string.Empty;
+        ygoIdSelecionado = null;
+
+        if (form.Nome.Trim().Length < 2)
+        {
+            sugestoesYgo.Clear();
+            return;
+        }
+
+        buscandoYgo = true;
+
+        try
+        {
+            sugestoesYgo = await YgoCatalogApiService.SearchAsync(form.Nome);
+        }
+        finally
+        {
+            buscandoYgo = false;
+        }
+    }
+
+    private async Task SelecionarSugestaoYgo(YgoCardSuggestionDto sugestao)
+    {
+        var detalhes = await YgoCatalogApiService.GetByYgoIdAsync(sugestao.YgoId);
+
+        if (detalhes == null)
+        {
+            return;
+        }
+
+        ygoIdSelecionado = detalhes.YgoId;
+
+        form.Nome = detalhes.Name;
+        form.Descricao = detalhes.Description;
+        form.ImagemUrl = detalhes.ImageUrl;
+
+        form.Tipo = detalhes.Type.Contains("Monster", StringComparison.OrdinalIgnoreCase)
+            ? "Monstro"
+            : detalhes.Type.Contains("Spell", StringComparison.OrdinalIgnoreCase)
+                ? "Magia"
+                : detalhes.Type.Contains("Trap", StringComparison.OrdinalIgnoreCase)
+                    ? "Armadilha"
+                    : form.Tipo;
+
+        form.Atributo = detalhes.Attribute switch
+        {
+            "DARK" => "Trevas",
+            "LIGHT" => "Luz",
+            "EARTH" => "Terra",
+            "WATER" => "Água",
+            "FIRE" => "Fogo",
+            "WIND" => "Vento",
+            "DIVINE" => "Divino",
+            _ => form.Atributo
+        };
+
+        form.Nivel = detalhes.Level;
+        form.Ataque = detalhes.Attack;
+        form.Defesa = detalhes.Defense;
+
+        form.TipoDeck = detalhes.Type.Contains("Normal", StringComparison.OrdinalIgnoreCase)
+            ? "Normal"
+            : form.TipoDeck;
+
+        sugestoesYgo.Clear();
+    }
 }
 
 <div class="modal-overlay" @onclick="OnClose">
@@ -108,10 +181,52 @@
             <label class="full">
                 <span class="field-label">Nome do card</span>
 
-                <input class="input"
-                       placeholder="Ex: Dragão Branco de Olhos Azuis"
-                       value="@form.Nome"
-                       @oninput="e => form.Nome = e.Value?.ToString() ?? string.Empty" />
+                <div style="position:relative;">
+                    <input class="input"
+                           placeholder="Ex: Dragão Branco de Olhos Azuis"
+                           value="@form.Nome"
+                           @oninput="OnNomeInput" />
+
+                    @if (buscandoYgo)
+                    {
+                        <div style="margin-top:6px;font-size:12px;color:var(--text-dim);">
+                            Buscando na Alexandria...
+                        </div>
+                    }
+
+                    @if (sugestoesYgo.Count > 0)
+                    {
+                        <div style="position:absolute;z-index:20;left:0;right:0;margin-top:6px;background:#120b24;border:1px solid rgba(139,92,246,.35);border-radius:12px;overflow:hidden;box-shadow:0 18px 40px rgba(0,0,0,.35);">
+                            @foreach (var sugestao in sugestoesYgo)
+                            {
+                                <button type="button"
+                                        @onclick="() => SelecionarSugestaoYgo(sugestao)"
+                                        style="width:100%;display:flex;gap:10px;align-items:center;padding:10px 12px;background:transparent;border:0;color:var(--text);text-align:left;cursor:pointer;">
+                                    @if (!string.IsNullOrWhiteSpace(sugestao.ImageUrlSmall))
+                                    {
+                                        <img src="@sugestao.ImageUrlSmall"
+                                             style="width:34px;height:48px;object-fit:cover;border-radius:4px;" />
+                                    }
+
+                                    <span>
+                                        <strong>@sugestao.Name</strong><br />
+                                        <small style="color:var(--text-dim);">
+                                            @sugestao.Type
+                                            @if (sugestao.Attack.HasValue)
+                                            {
+                                                <span> • ATK @sugestao.Attack</span>
+                                            }
+                                            @if (sugestao.Defense.HasValue)
+                                            {
+                                                <span> / DEF @sugestao.Defense</span>
+                                            }
+                                        </small>
+                                    </span>
+                                </button>
+                            }
+                        </div>
+                    }
+                </div>
             </label>
 
             <label>
