@@ -36,4 +36,18 @@ public class YgoCatalogApiService
             $"{_apiBaseUrl}/api/ygo/cards/{ygoId}"
         );
     }
+
+    public async Task<List<YgoSetSuggestionDto>> SearchBySetCodeAsync(string code)
+    {
+        if (string.IsNullOrWhiteSpace(code) || code.Trim().Length < 2)
+        {
+            return new List<YgoSetSuggestionDto>();
+        }
+
+        var query = Uri.EscapeDataString(code.Trim());
+
+        return await _httpClient.GetFromJsonAsync<List<YgoSetSuggestionDto>>(
+            $"{_apiBaseUrl}/api/ygo/cards/buscar-por-setcode?codigo={query}"
+        ) ?? new List<YgoSetSuggestionDto>();
+    }
 }
