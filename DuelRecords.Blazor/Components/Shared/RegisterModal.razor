@@ -57,54 +57,66 @@
         return "Monstro";
     }
 
-    private string ResolverCategoria(string? ygoType)
+    private string ResolverCategoria(string? ygoType, string? ygoRace)
     {
-        if (string.IsNullOrWhiteSpace(ygoType))
-            return "Normal";
+        var type = ygoType ?? string.Empty;
+        var race = ygoRace ?? string.Empty;
+        var combined = $"{type} {race}";
 
         // MONSTROS
-        if (ygoType.Contains("Fusion", StringComparison.OrdinalIgnoreCase))
+        if (combined.Contains("Fusion", StringComparison.OrdinalIgnoreCase))
             return "Fusão";
 
-        if (ygoType.Contains("Synchro", StringComparison.OrdinalIgnoreCase))
+        if (combined.Contains("Synchro", StringComparison.OrdinalIgnoreCase))
             return "Sincro";
 
-        if (ygoType.Contains("XYZ", StringComparison.OrdinalIgnoreCase))
+        if (combined.Contains("XYZ", StringComparison.OrdinalIgnoreCase))
             return "XYZ";
 
-        if (ygoType.Contains("Link", StringComparison.OrdinalIgnoreCase))
+        if (combined.Contains("Link", StringComparison.OrdinalIgnoreCase))
             return "Link";
 
-        if (ygoType.Contains("Pendulum", StringComparison.OrdinalIgnoreCase))
+        if (combined.Contains("Pendulum", StringComparison.OrdinalIgnoreCase))
             return "Pêndulo";
 
-        if (ygoType.Contains("Ritual", StringComparison.OrdinalIgnoreCase))
+        if (combined.Contains("Ritual", StringComparison.OrdinalIgnoreCase))
             return "Ritual";
 
-        if (ygoType.Contains("Effect", StringComparison.OrdinalIgnoreCase))
+        if (combined.Contains("Effect", StringComparison.OrdinalIgnoreCase))
             return "Efeito";
 
         // MAGIAS
-        if (ygoType.Contains("Quick-Play", StringComparison.OrdinalIgnoreCase))
-            return "Magia Rápida";
+        if (type.Contains("Spell", StringComparison.OrdinalIgnoreCase))
+        {
+            if (combined.Contains("Quick-Play", StringComparison.OrdinalIgnoreCase))
+                return "Magia Rápida";
 
-        if (ygoType.Contains("Continuous", StringComparison.OrdinalIgnoreCase)
-            && ygoType.Contains("Spell", StringComparison.OrdinalIgnoreCase))
-            return "Magia Contínua";
+            if (combined.Contains("Continuous", StringComparison.OrdinalIgnoreCase))
+                return "Magia Contínua";
 
-        if (ygoType.Contains("Field", StringComparison.OrdinalIgnoreCase))
-            return "Magia de Campo";
+            if (combined.Contains("Field", StringComparison.OrdinalIgnoreCase))
+                return "Magia de Campo";
 
-        if (ygoType.Contains("Equip", StringComparison.OrdinalIgnoreCase))
-            return "Magia de Equipamento";
+            if (combined.Contains("Equip", StringComparison.OrdinalIgnoreCase))
+                return "Magia de Equipamento";
+
+            if (combined.Contains("Ritual", StringComparison.OrdinalIgnoreCase))
+                return "Ritual";
+
+            return "Normal";
+        }
 
         // ARMADILHAS
-        if (ygoType.Contains("Counter", StringComparison.OrdinalIgnoreCase))
-            return "Armadilha de Resposta";
+        if (type.Contains("Trap", StringComparison.OrdinalIgnoreCase))
+        {
+            if (combined.Contains("Counter", StringComparison.OrdinalIgnoreCase))
+                return "Armadilha de Resposta";
 
-        if (ygoType.Contains("Continuous", StringComparison.OrdinalIgnoreCase)
-            && ygoType.Contains("Trap", StringComparison.OrdinalIgnoreCase))
-            return "Armadilha Contínua";
+            if (combined.Contains("Continuous", StringComparison.OrdinalIgnoreCase))
+                return "Armadilha Contínua";
+
+            return "Normal";
+        }
 
         return "Normal";
     }
@@ -252,7 +264,7 @@
             form.ImagemUrl = detalhes.ImageUrl;
 
             form.Tipo = ResolverTipoPrincipal(detalhes.Type);
-            form.TipoDeck = ResolverCategoria(detalhes.Type);
+            form.TipoDeck = ResolverCategoria(detalhes.Type, detalhes.Race);
 
             form.Atributo = detalhes.Attribute switch
             {
@@ -306,7 +318,7 @@
             form.ImagemUrl = detalhes.ImageUrl;
 
             form.Tipo = ResolverTipoPrincipal(detalhes.Type);
-            form.TipoDeck = ResolverCategoria(detalhes.Type);
+            form.TipoDeck = ResolverCategoria(detalhes.Type, detalhes.Race);
 
             form.Atributo = detalhes.Attribute switch
             {
