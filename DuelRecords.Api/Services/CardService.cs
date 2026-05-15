@@ -44,7 +44,7 @@ public class CardService : ICardService
             Colecao = dto.Colecao,
             Descricao = dto.Descricao,
             ImagemUrl = dto.ImagemUrl,
-            DataCadastro = DateTime.Now
+            DataCadastro = DateTime.UtcNow
         };
 
         _context.Cards.Add(card);
