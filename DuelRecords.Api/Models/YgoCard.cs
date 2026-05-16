@@ -38,7 +38,7 @@ public class YgoCard
 
     public DateTime ImportedAt { get; set; } = DateTime.UtcNow;
 
-    public DateTime? LastSyncedAt { get; set; }
+    public DateTime? LastSyncedAt { get; set; } = DateTime.UtcNow;
 
     public List<YgoCardImage> Images { get; set; } = new();
 

@@ -1,5 +1,6 @@
 ﻿using DuelRecords.Api.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace DuelRecords.Api.Data.Contexts;
 
@@ -17,6 +18,49 @@ public class MundoZeroDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        // =========================================================
+        // FIX UTC GLOBAL PARA POSTGRESQL + NPGSQL
+        // =========================================================
+
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            var dateTimeProperties = entityType
+                .GetProperties()
+                .Where(p => p.ClrType == typeof(DateTime));
+
+            foreach (var property in dateTimeProperties)
+            {
+                property.SetValueConverter(
+                    new ValueConverter<DateTime, DateTime>(
+                        v => v.ToUniversalTime(),
+                        v => DateTime.SpecifyKind(v, DateTimeKind.Utc)
+                    )
+                );
+            }
+
+            var nullableDateTimeProperties = entityType
+                .GetProperties()
+                .Where(p => p.ClrType == typeof(DateTime?));
+
+            foreach (var property in nullableDateTimeProperties)
+            {
+                property.SetValueConverter(
+                    new ValueConverter<DateTime?, DateTime?>(
+                        v => v.HasValue
+                            ? v.Value.ToUniversalTime()
+                            : v,
+                        v => v.HasValue
+                            ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc)
+                            : v
+                    )
+                );
+            }
+        }
+
+        // =========================================================
+        // RELACIONAMENTOS
+        // =========================================================
 
         modelBuilder.Entity<DeckCard>()
             .HasOne(dc => dc.Deck)

@@ -37,12 +37,16 @@ public class DeckService : IDeckService
 
     public async Task<DeckResponseDto> CreateAsync(CreateDeckDto dto)
     {
+        throw new Exception("TESTE NOVO CODIGO");
+
+        var now = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);
+
         var deck = new Deck
         {
             Nome = dto.Nome,
             Descricao = dto.Descricao,
-            DataCriacao = DateTime.Now,
-            DataAtualizacao = DateTime.Now,
+            DataCriacao = now,
+            DataAtualizacao = now,
             Cards = dto.Cards.Select(c => new DeckCard
             {
                 CardId = c.CardId,
@@ -57,7 +61,6 @@ public class DeckService : IDeckService
 
         return (await GetByIdAsync(deck.Id))!;
     }
-
     public async Task<bool> UpdateAsync(int id, UpdateDeckDto dto)
     {
         var deck = await _context.Decks
@@ -71,7 +74,7 @@ public class DeckService : IDeckService
 
         deck.Nome = dto.Nome;
         deck.Descricao = dto.Descricao;
-        deck.DataAtualizacao = DateTime.Now;
+        deck.DataAtualizacao = DateTime.UtcNow;
 
         _context.DeckCards.RemoveRange(deck.Cards);
 

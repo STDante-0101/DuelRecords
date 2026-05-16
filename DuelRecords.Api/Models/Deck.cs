@@ -8,9 +8,9 @@ public class Deck
 
     public string? Descricao { get; set; }
 
-    public DateTime DataCriacao { get; set; } = DateTime.Now;
+    public DateTime DataCriacao { get; set; } 
 
-    public DateTime DataAtualizacao { get; set; } = DateTime.Now;
+    public DateTime DataAtualizacao { get; set; } 
 
     public List<DeckCard> Cards { get; set; } = new();
 }

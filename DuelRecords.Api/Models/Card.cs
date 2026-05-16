@@ -28,5 +28,5 @@ public class Card
 
     public string? ImagemUrl { get; set; }
 
-    public DateTime DataCadastro { get; set; } = DateTime.Now;
+    public DateTime DataCadastro { get; set; } = DateTime.UtcNow;
 }
