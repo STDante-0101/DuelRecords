@@ -55,6 +55,12 @@ public class DeckService : IDeckService
         };
 
         _context.Decks.Add(deck);
+        Console.WriteLine("=== CREATE DECK DEBUG ===");
+        Console.WriteLine($"Criacao: {deck.DataCriacao:o}");
+        Console.WriteLine($"Criacao Kind: {deck.DataCriacao.Kind}");
+        Console.WriteLine($"Atualizacao: {deck.DataAtualizacao:o}");
+        Console.WriteLine($"Atualizacao Kind: {deck.DataAtualizacao.Kind}");
+
         await _context.SaveChangesAsync();
 
         return (await GetByIdAsync(deck.Id))!;
