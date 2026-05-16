@@ -36,9 +36,6 @@ public class CardApiService : ICardApiService
     {
         try
         {
-            Console.WriteLine("=== INICIANDO CREATE CARD ===");
-            Console.WriteLine($"Nome: {card.Nome}");
-            Console.WriteLine($"Tipo: {card.Tipo}");
 
             var response = await _httpClient.PostAsJsonAsync(
                 $"{_apiBaseUrl}/api/cards",
@@ -49,14 +46,10 @@ public class CardApiService : ICardApiService
 
             var responseBody = await response.Content.ReadAsStringAsync();
 
-            Console.WriteLine("Resposta API:");
-            Console.WriteLine(responseBody);
-
             return response.IsSuccessStatusCode;
         }
         catch (Exception ex)
         {
-            Console.WriteLine("ERRO AO CADASTRAR CARD:");
             Console.WriteLine(ex.ToString());
 
             return false;

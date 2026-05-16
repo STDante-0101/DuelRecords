@@ -128,12 +128,6 @@
             salvando = true;
             mensagemErro = null;
 
-            Console.WriteLine("=== REGISTER MODAL: INICIANDO CADASTRO ===");
-            Console.WriteLine($"Nome: {form.Nome}");
-            Console.WriteLine($"Tipo: {form.Tipo}");
-            Console.WriteLine($"ImagemUrl atual: {form.ImagemUrl}");
-            Console.WriteLine($"Imagem local selecionada: {nomeImagemSelecionada}");
-
             if (string.IsNullOrWhiteSpace(form.Nome))
             {
                 mensagemErro = "Informe o nome do card.";
@@ -150,7 +144,6 @@
 
             if (imagemSelecionada != null)
             {
-                Console.WriteLine("Tentando enviar imagem local...");
 
                 await using var stream = imagemSelecionada.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
 
@@ -174,7 +167,6 @@
 
             if (sucesso)
             {
-                Console.WriteLine("Card cadastrado com sucesso.");
                 await OnClose.InvokeAsync();
             }
             else
@@ -184,7 +176,6 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine("ERRO NO REGISTER MODAL:");
             Console.WriteLine(ex.ToString());
 
             mensagemErro = $"Erro ao cadastrar card: {ex.Message}";
@@ -214,7 +205,6 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine("Erro ao buscar sugestões YGO:");
             Console.WriteLine(ex.ToString());
             sugestoesYgo.Clear();
         }
@@ -287,7 +277,6 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine("Erro ao selecionar carta YGO:");
             Console.WriteLine(ex.ToString());
 
             mensagemErro = $"Erro ao carregar detalhes da carta: {ex.Message}";

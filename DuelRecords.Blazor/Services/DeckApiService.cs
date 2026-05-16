@@ -30,26 +30,11 @@ public class DeckApiService : IDeckApiService
 
     public async Task<DeckApiModel?> CreateDeckAsync(CreateDeckApiModel deck)
     {
-        Console.WriteLine("=== CREATE DECK ===");
-
-        Console.WriteLine($"Nome: {deck.Nome}");
-
-        foreach (var card in deck.Cards)
-        {
-            Console.WriteLine(
-                $"CardId={card.CardId} | Qtd={card.Quantidade} | Secao={card.Secao}");
-        }
-
         var response = await _httpClient.PostAsJsonAsync(
             $"{_apiBaseUrl}/api/decks",
             deck);
 
-        Console.WriteLine($"Status Code: {response.StatusCode}");
-
         var content = await response.Content.ReadAsStringAsync();
-
-        Console.WriteLine("Resposta API:");
-        Console.WriteLine(content);
 
         if (!response.IsSuccessStatusCode)
         {
