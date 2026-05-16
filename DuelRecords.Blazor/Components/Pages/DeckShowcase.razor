@@ -1,0 +1,530 @@
+@page "/decks/{Id}/showcase"
+
+@using DuelRecords.Blazor.Models
+@using DuelRecords.Blazor.Services
+@using DuelRecords.Blazor.Components.Shared
+
+@inject AppState State
+@inject NavigationManager Nav
+@inject IDeckApiService DeckApiService
+@inject ICardApiService CardApiService
+
+@implements IDisposable
+
+@if (deck == null)
+{
+    <div class="empty">
+        <Icon Name="sword" Size="36" />
+        <h3>Deck não encontrado</h3>
+        <button class="btn-ghost" @onclick='() => Nav.NavigateTo("/decks")'>← Voltar</button>
+    </div>
+}
+else
+{
+    <div class="showcase-page">
+
+        <!-- Hero -->
+        <header class="sc-hero">
+            <div class="sc-hero-bg" style="background:@BannerGradient(deck.Id)"></div>
+            <div class="sc-hero-bg-blur" style="background:@BannerGradient(deck.Id)"></div>
+            <div class="sc-hero-glow"></div>
+            <div class="sc-hero-noise"></div>
+            <div class="sc-hero-tint"></div>
+
+            <div class="sc-back-row">
+                <button class="sc-back" @onclick='() => Nav.NavigateTo("/decks")'>‹</button>
+                <div class="sc-breadcrumb">Meus Decks · <b>Vitrine</b></div>
+            </div>
+
+            <div class="sc-hero-actions">
+                <button class="btn-secondary"
+                        @onclick="@(() => Nav.NavigateTo($"/decks/{deck.Id}"))">
+                    Editar Deck
+                </button>
+            </div>
+
+            <div class="sc-hero-content">
+                @if (iconCard != null)
+                {
+                    <div class="sc-deck-icon" style="position:relative;overflow:hidden">
+                        <CardArt Card="iconCard" Compact="true" />
+                    </div>
+                }
+                else
+                {
+                    <div class="sc-deck-icon"
+                         style="background:var(--panel-2);display:grid;place-items:center;border-radius:10px">
+                        <Icon Name="sword" Size="32" />
+                    </div>
+                }
+
+                <div class="sc-title-block">
+                    <div class="sc-archetype-row">
+                        <span class="sc-format-chip">STANDARD</span>
+                    </div>
+                    <h1 class="sc-title">@deck.Name</h1>
+                    <div class="sc-meta-row">
+                        <span class="hp-chip">@deck.Cards.Count cards</span>
+                        <span class="hp-chip">@deck.UpdatedAgo</span>
+                    </div>
+                </div>
+
+                <div class="sc-featured-rail">
+                    @foreach (var fc in featuredRail)
+                    {
+                        <div class="sc-featured-card" title="@fc.Name" style="position:relative;overflow:hidden">
+                            <CardArt Card="fc" Compact="true" />
+                        </div>
+                    }
+                </div>
+            </div>
+        </header>
+
+        <!-- Stats strip -->
+        <div class="sc-stats-strip">
+
+            <!-- Composição -->
+            @{
+                var compMax = Math.Max(Math.Max(monsters, Math.Max(spells, traps)), 1);
+                var mPct = (int)(monsters * 100.0 / compMax);
+                var sPct = (int)(spells * 100.0 / compMax);
+                var tPct = (int)(traps * 100.0 / compMax);
+                var compTotal = monsters + spells + traps;
+            }
+            <div class="sc-stat-card">
+                <div class="sc-stat-head">
+                    <span>COMPOSIÇÃO</span>
+                    <span class="num">@compTotal</span>
+                </div>
+                <div class="sc-comp-row" style="height:64px">
+                    <div class="sc-comp-bar">
+                        <div class="sc-comp-bar-fill"
+                             style="height:@(mPct)%;background:var(--gold)"></div>
+                    </div>
+                    <div class="sc-comp-bar">
+                        <div class="sc-comp-bar-fill"
+                             style="height:@(sPct)%;background:var(--green)"></div>
+                    </div>
+                    <div class="sc-comp-bar">
+                        <div class="sc-comp-bar-fill"
+                             style="height:@(tPct)%;background:var(--pink)"></div>
+                    </div>
+                </div>
+                <div class="sc-comp-key">
+                    <span><i style="background:var(--gold)"></i>Monstros <b style="color:var(--text);font-weight:700">@monsters</b></span>
+                    <span><i style="background:var(--green)"></i>Magias <b style="color:var(--text);font-weight:700">@spells</b></span>
+                    <span><i style="background:var(--pink)"></i>Armadilhas <b style="color:var(--text);font-weight:700">@traps</b></span>
+                </div>
+            </div>
+
+            <!-- Extra Deck donut -->
+            <div class="sc-stat-card">
+                <div class="sc-stat-head">
+                    <span>EXTRA DECK</span>
+                    <span class="num">@extraCards.Count</span>
+                </div>
+                <div class="sc-donut-wrap">
+                    <div class="sc-donut"
+                         style="background:@ExtraDonutGradient;border-radius:50%">
+                        <div style="position:absolute;inset:16px;background:var(--panel);border-radius:50%;border:1px solid var(--border-soft)"></div>
+                        <div class="sc-donut-center">
+                            @extraCards.Count<small>EXTRA</small>
+                        </div>
+                    </div>
+                    <div class="sc-donut-legend">
+                        @if (!byKind.Any())
+                        {
+                            <div style="color:var(--text-dim);font-size:11px">Sem cards no Extra.</div>
+                        }
+                        else
+                        {
+                            @foreach (var kv in byKind)
+                            {
+                                <div class="row">
+                                    <i style="background:@KindColor(kv.Key)"></i>
+                                    <span class="name">@kv.Key</span>
+                                    <span class="v">@kv.Value</span>
+                                </div>
+                            }
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Atributos -->
+            <div class="sc-stat-card">
+                <div class="sc-stat-head">
+                    <span>ATRIBUTOS</span>
+                    <span class="num">@byAttr.Count</span>
+                </div>
+                <div class="sc-attr-grid">
+                    @if (!byAttr.Any())
+                    {
+                        <div style="grid-column:1/-1;text-align:center;color:var(--text-dim);font-size:11px;padding:8px">—</div>
+                    }
+                    else
+                    {
+                        @foreach (var kv in byAttr)
+                        {
+                            var palette = CardCatalog.ArtPalettes.GetValueOrDefault(kv.Key, new[] { "#888", "#444", "#222" });
+                            <div class="sc-attr-cell">
+                                <span class="g"
+                                      style="background:radial-gradient(circle, @palette[0], @palette[1])">
+                                    @AttrGlyph(kv.Key)
+                                </span>
+                                <span class="nm">@kv.Key</span>
+                                <span class="n">@kv.Value</span>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+
+            <!-- Números -->
+            @{
+                var mainOk = mainCards.Count >= 40 && mainCards.Count <= 60;
+            }
+            <div class="sc-stat-card">
+                <div class="sc-stat-head">
+                    <span>NÚMEROS</span>
+                    <span class="num">●</span>
+                </div>
+                <div class="sc-nums">
+                    <div class="sc-nums-cell @(mainOk ? "ok" : "warn")">
+                        <label>Main</label>
+                        <b class="numeric">@mainCards.Count <small style="color:var(--text-dim);font-size:11px">/ 40</small></b>
+                    </div>
+                    <div class="sc-nums-cell">
+                        <label>Extra</label>
+                        <b class="numeric">@extraCards.Count <small style="color:var(--text-dim);font-size:11px">/ 15</small></b>
+                    </div>
+                    <div class="sc-nums-cell">
+                        <label>Side</label>
+                        <b class="numeric">@sideCards.Count <small style="color:var(--text-dim);font-size:11px">/ 15</small></b>
+                    </div>
+                    <div class="sc-nums-cell">
+                        <label>Nível médio</label>
+                        <b class="numeric">@avgLevelDisplay</b>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Gallery sections -->
+        <div class="sc-deck-sections">
+
+            <!-- Main -->
+            <section class="sc-section sc-section-main">
+                <div class="sc-section-head">
+                    <div class="sc-section-title">
+                        <h2>Main Deck</h2>
+                        <span class="sub">Monstros, Magias e Armadilhas</span>
+                    </div>
+                    <span class="sc-section-count @(mainOk ? "ok" : "warn")">
+                        @mainCards.Count <small>/ 60</small>
+                    </span>
+                </div>
+                @if (!mainCards.Any())
+                {
+                    <div class="dd-gallery-empty">Nenhum card neste deck.</div>
+                }
+                else
+                {
+                    <div class="sc-card-grid main-grid">
+                        @foreach (var g in GroupCards(mainCards))
+                        {
+                            var gc = g;
+                            <div class="sc-card"
+                                 @onclick="() => focusedCard = gc.card"
+                                 title="@gc.card.Name">
+                                <div class="sc-card-frame" style="position:relative;overflow:hidden">
+                                    <CardArt Card="gc.card" Compact="true" />
+                                    @if (gc.qty > 1)
+                                    {
+                                        <div class="sc-card-qty">×@gc.qty</div>
+                                    }
+                                </div>
+                                <div class="sc-card-name">@gc.card.Name</div>
+                            </div>
+                        }
+                    </div>
+                }
+            </section>
+
+            <!-- Extra -->
+            @if (extraCards.Any())
+            {
+                <section class="sc-section sc-section-extra">
+                    <div class="sc-section-head">
+                        <div class="sc-section-title">
+                            <h2>Extra Deck</h2>
+                            <span class="sub">Fusões, Sincros, XYZ e Links</span>
+                        </div>
+                        <span class="sc-section-count">
+                            @extraCards.Count <small>/ 15</small>
+                        </span>
+                    </div>
+                    <div class="sc-card-grid extra-grid">
+                        @foreach (var g in GroupCards(extraCards))
+                        {
+                            var gc = g;
+                            <div class="sc-card"
+                                 @onclick="() => focusedCard = gc.card"
+                                 title="@gc.card.Name">
+                                <div class="sc-card-frame" style="position:relative;overflow:hidden">
+                                    <CardArt Card="gc.card" Compact="true" />
+                                    @if (gc.qty > 1)
+                                    {
+                                        <div class="sc-card-qty">×@gc.qty</div>
+                                    }
+                                </div>
+                                <div class="sc-card-name">@gc.card.Name</div>
+                            </div>
+                        }
+                    </div>
+                </section>
+            }
+
+            <!-- Side -->
+            @if (sideCards.Any())
+            {
+                <section class="sc-section sc-section-side">
+                    <div class="sc-section-head">
+                        <div class="sc-section-title">
+                            <h2>Side Deck</h2>
+                            <span class="sub">Reserva estratégica</span>
+                        </div>
+                        <span class="sc-section-count cyan">
+                            @sideCards.Count <small>/ 15</small>
+                        </span>
+                    </div>
+                    <div class="sc-card-grid side-grid">
+                        @foreach (var g in GroupCards(sideCards))
+                        {
+                            var gc = g;
+                            <div class="sc-card"
+                                 @onclick="() => focusedCard = gc.card"
+                                 title="@gc.card.Name">
+                                <div class="sc-card-frame" style="position:relative;overflow:hidden">
+                                    <CardArt Card="gc.card" Compact="true" />
+                                    @if (gc.qty > 1)
+                                    {
+                                        <div class="sc-card-qty">×@gc.qty</div>
+                                    }
+                                </div>
+                                <div class="sc-card-name">@gc.card.Name</div>
+                            </div>
+                        }
+                    </div>
+                </section>
+            }
+
+        </div>
+
+    </div>
+
+    <!-- CinematicFocus overlay -->
+    @if (focusedCard != null)
+    {
+        <div class="sc-focus-overlay" @onclick="() => focusedCard = null">
+            <button class="sc-focus-close"
+                    @onclick="() => focusedCard = null"
+                    @onclick:stopPropagation="true">✕</button>
+            <div class="sc-focus-stage" @onclick:stopPropagation="true">
+                <div class="sc-focus-card" style="position:relative;overflow:hidden">
+                    <CardArt Card="focusedCard" />
+                </div>
+                <div class="sc-focus-info">
+                    <div class="sc-archetype-row">
+                        <span class="sc-format-chip">@focusedCard.Rarity.ToUpper()</span>
+                        <span class="sc-archetype-chip">@focusedCard.Kind</span>
+                    </div>
+                    <h2>@focusedCard.Name</h2>
+                    @if (focusedCard.Type == "Monstro")
+                    {
+                        <div class="sc-focus-stats">
+                            <div><label>ATK</label><b class="numeric">@(focusedCard.Atk?.ToString() ?? "?")</b></div>
+                            @if (focusedCard.Def.HasValue)
+                            {
+                                <div><label>DEF</label><b class="numeric">@focusedCard.Def</b></div>
+                            }
+                            @if (focusedCard.Level.HasValue)
+                            {
+                                <div><label>Nível</label><b class="numeric">@focusedCard.Level</b></div>
+                            }
+                        </div>
+                    }
+                    <p class="desc">@focusedCard.Description</p>
+                </div>
+            </div>
+        </div>
+    }
+}
+
+@code {
+
+    [Parameter] public string Id { get; set; } = "";
+
+    Deck? deck;
+    Card? focusedCard;
+
+    List<Card> mainCards = new();
+    List<Card> extraCards = new();
+    List<Card> sideCards = new();
+    List<Card> featuredRail = new();
+    Card? iconCard;
+
+    int monsters, spells, traps;
+    Dictionary<string, int> byKind = new();
+    Dictionary<string, int> byAttr = new();
+    double avgLevel;
+
+    string avgLevelDisplay => avgLevel > 0
+        ? ((int)Math.Round(avgLevel)).ToString()
+        : "—";
+
+    static readonly string[] Banners = new[]
+    {
+        "linear-gradient(135deg, #1e0b4d 0%, #5b21b6 50%, #4c1d95 100%)",
+        "linear-gradient(135deg, #3a0e08 0%, #dc2626 50%, #7c2d12 100%)",
+        "linear-gradient(135deg, #020617 0%, #1e3a8a 50%, #0c0a09 100%)",
+        "linear-gradient(135deg, #1a0a3c 0%, #fde68a 50%, #a78bfa 100%)",
+        "linear-gradient(135deg, #082f49 0%, #22d3ee 50%, #0e7490 100%)",
+        "linear-gradient(135deg, #052e16 0%, #16a34a 50%, #14532d 100%)",
+        "linear-gradient(135deg, #450a0a 0%, #dc2626 50%, #7f1d1d 100%)"
+    };
+
+    static readonly Dictionary<string, string> KindColors = new()
+    {
+        ["Fusão"] = "#a78bfa",
+        ["Sincro"] = "#e5e7eb",
+        ["XYZ"] = "#3a3a3a",
+        ["Link"] = "#5582f5",
+        ["Ritual"] = "#5fa8ff"
+    };
+
+    static string BannerGradient(string deckId) =>
+        Banners[Math.Abs(deckId.GetHashCode()) % Banners.Length];
+
+    static string KindColor(string kind) =>
+        KindColors.GetValueOrDefault(kind, "#888888");
+
+    static string AttrGlyph(string attr) => attr switch
+    {
+        "Trevas" => "☾",
+        "Luz"    => "✦",
+        "Fogo"   => "♦",
+        "Água"   => "◈",
+        "Terra"  => "⬡",
+        "Vento"  => "↻",
+        "Divino" => "★",
+        _        => "?"
+    };
+
+    string ExtraDonutGradient
+    {
+        get
+        {
+            if (!byKind.Any())
+                return "conic-gradient(var(--border-soft) 0deg 360deg)";
+
+            var data = byKind.ToList();
+            var total = data.Sum(d => d.Value);
+            var stops = new List<string>();
+            double acc = 0;
+
+            foreach (var kv in data)
+            {
+                var startDeg = (int)Math.Round((acc / total) * 360);
+                acc += kv.Value;
+                var endDeg = (int)Math.Round((acc / total) * 360);
+                stops.Add($"{KindColor(kv.Key)} {startDeg}deg {endDeg}deg");
+            }
+
+            return $"conic-gradient({string.Join(", ", stops)})";
+        }
+    }
+
+    static IEnumerable<(Card card, int qty)> GroupCards(List<Card> cards) =>
+        cards
+            .GroupBy(c => c.Id)
+            .Select(g => (card: g.First(), qty: g.Count()));
+
+    protected override async Task OnInitializedAsync()
+    {
+        State.OnChange += StateHasChanged;
+
+        if (State.Cards.Count == 0)
+            await State.LoadCardsFromApiAsync(CardApiService);
+
+        if (State.Decks.Count == 0)
+            await State.LoadDecksFromApiAsync(DeckApiService);
+
+        deck = State.Decks.FirstOrDefault(d => d.Id == Id);
+        ComputeStats();
+    }
+
+    public void Dispose() => State.OnChange -= StateHasChanged;
+
+    void ComputeStats()
+    {
+        if (deck == null) return;
+
+        mainCards = deck.Cards
+            .Where(c => c.Section == "main")
+            .Select(c => State.GetCard(c.Id))
+            .Where(c => c != null)
+            .Select(c => c!)
+            .ToList();
+
+        extraCards = deck.Cards
+            .Where(c => c.Section == "extra")
+            .Select(c => State.GetCard(c.Id))
+            .Where(c => c != null)
+            .Select(c => c!)
+            .ToList();
+
+        sideCards = deck.Cards
+            .Where(c => c.Section == "side")
+            .Select(c => State.GetCard(c.Id))
+            .Where(c => c != null)
+            .Select(c => c!)
+            .ToList();
+
+        monsters = mainCards.Count(c => c.Type == "Monstro");
+        spells   = mainCards.Count(c => c.Type == "Magia");
+        traps    = mainCards.Count(c => c.Type == "Armadilha");
+
+        byKind = extraCards
+            .GroupBy(c => c.Kind)
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        byAttr = mainCards
+            .Where(c => !string.IsNullOrEmpty(c.Attribute))
+            .GroupBy(c => c.Attribute!)
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        var levelCards = mainCards
+            .Where(c => c.Level.HasValue && c.Type == "Monstro")
+            .ToList();
+        avgLevel = levelCards.Any()
+            ? levelCards.Average(c => (double)c.Level!.Value)
+            : 0;
+
+        var allCards = deck.Cards
+            .Select(c => State.GetCard(c.Id))
+            .Where(c => c != null)
+            .Select(c => c!)
+            .ToList();
+
+        iconCard = allCards.FirstOrDefault();
+
+        featuredRail = mainCards
+            .Concat(extraCards)
+            .DistinctBy(c => c.Id)
+            .OrderByDescending(c => CardCatalog.RarityRank(c.Rarity))
+            .Take(3)
+            .ToList();
+    }
+}

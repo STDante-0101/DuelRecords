@@ -13,199 +13,225 @@
 
 @implements IDisposable
 
-<div class="page-head">
-    <div class="page-title">
-        <div class="icon-bubble">
-            <Icon Name="sword" Size="22" />
-        </div>
+<div class="decks-page">
 
-        <div>
-            <h1>Meus Decks</h1>
-
-            <div class="sub">
-                @State.Decks.Count
-                @(State.Decks.Count == 1
-                    ? " deck construído"
-                    : " decks construídos")
+    <div class="page-head">
+        <div class="page-title">
+            <div class="icon-bubble">
+                <Icon Name="sword" Size="22" />
+            </div>
+            <div>
+                <h1>Meus Decks</h1>
+                <div class="sub">
+                    @State.Decks.Count
+                    @(State.Decks.Count == 1 ? " deck construído" : " decks construídos")
+                </div>
             </div>
         </div>
     </div>
 
-    <button class="btn-primary"
-            @onclick='() => Nav.NavigateTo("/decks/new")'>
+    @if (State.Decks.Count > 0)
+    {
+        <div class="decks-toolbar">
+            <div class="dt-row-1">
+                <div class="dt-search">
+                    <span class="icon">⌕</span>
+                    <input class="input"
+                           placeholder="Buscar deck por nome..."
+                           @bind="search"
+                           @bind:event="oninput" />
+                </div>
+                <select class="select dt-sort" @bind="sort">
+                    <option value="updated">Mais recente</option>
+                    <option value="name">Nome (A-Z)</option>
+                </select>
+            </div>
+        </div>
+    }
 
-        <Icon Name="plus" Size="15" />
-        Novo deck
-    </button>
+    @if (State.Decks.Count == 0)
+    {
+        <div class="empty">
+            <Icon Name="sword" Size="36" />
+            <h3>Nenhum deck construído</h3>
+            <div>Crie seu primeiro deck para começar a duelar.</div>
+            <button class="btn-primary"
+                    style="margin-top:16px"
+                    @onclick='() => Nav.NavigateTo("/decks/new")'>
+                <Icon Name="plus" Size="14" />
+                Construir meu primeiro deck
+            </button>
+        </div>
+    }
+    else
+    {
+        <div class="my-decks-scroll">
+            <div class="my-decks-grid">
+
+                <button class="my-deck-card new"
+                        @onclick='() => Nav.NavigateTo("/decks/new")'>
+                    <div class="ndc-plus">+</div>
+                    <div class="ndc-label">Novo Deck</div>
+                    <div class="ndc-sub">Comece do zero</div>
+                </button>
+
+                @foreach (var d in FilteredDecks)
+                {
+                    var deck = d;
+
+                    var allCards = deck.Cards
+                        .Select(x => State.GetCard(x.Id))
+                        .Where(c => c != null)
+                        .Select(c => c!)
+                        .ToList();
+
+                    var featured = allCards.FirstOrDefault();
+                    var fanCards = allCards.Skip(1).Take(4).ToList();
+
+                    var mainCount = deck.Cards.Count(c => c.Section == "main");
+                    var extraCount = deck.Cards.Count(c => c.Section == "extra");
+                    var sideCount = deck.Cards.Count(c => c.Section == "side");
+                    var legal = mainCount >= 40 && mainCount <= 60 && extraCount <= 15 && sideCount <= 15;
+
+                    <article class="my-deck-card" @onclick="() => ViewDeck(deck)">
+
+                        <div class="dc-cover"
+                             style="background:@BannerGradient(deck.Id);height:170px;position:relative;overflow:hidden">
+                            <div class="dc-cover-tint"></div>
+                            <div class="dc-cover-glow"></div>
+                            <div class="dc-cover-fan" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);display:flex;z-index:1">
+                                @for (int fi = 0; fi < fanCards.Count; fi++)
+                                {
+                                    var fc = fanCards[fi];
+                                    <div class="dc-fan-mini" style="--i:@fi;position:relative;overflow:hidden;width:60px;aspect-ratio:59/86">
+                                        <CardArt Card="fc" Compact="true" />
+                                    </div>
+                                }
+                            </div>
+                            @if (featured != null)
+                            {
+                                <div class="dc-cover-featured" style="position:absolute;right:16px;top:50%;transform:translateY(-50%) rotate(6deg);width:92px;aspect-ratio:59/86;overflow:hidden;border-radius:8px;z-index:2">
+                                    <CardArt Card="featured" Compact="true" />
+                                </div>
+                            }
+                            <div class="dc-cover-shine"></div>
+                        </div>
+
+                        <div class="mdc-body">
+                            <div class="mdc-head">
+                                <div>
+                                    <div class="mdc-archetype">DECK</div>
+                                    <h3 class="mdc-name">@deck.Name</h3>
+                                </div>
+                                <button class="mdc-options"
+                                        @onclick:stopPropagation="true"
+                                        title="Opções do deck">⋯</button>
+                            </div>
+
+                            <div class="mdc-chips">
+                                <span class="mdc-chip @(mainCount < 40 || mainCount > 60 ? "warn" : "ok")">
+                                    Main <b class="numeric">@mainCount</b>
+                                </span>
+                                <span class="mdc-chip">
+                                    Extra <b class="numeric">@extraCount</b>
+                                </span>
+                                <span class="mdc-chip">
+                                    Side <b class="numeric">@sideCount</b>
+                                </span>
+                                @if (legal)
+                                {
+                                    <span class="mdc-chip ok">✓ Pronto</span>
+                                }
+                                else
+                                {
+                                    <span class="mdc-chip warn">Rascunho</span>
+                                }
+                            </div>
+
+                            <div class="mdc-foot">
+                                <button class="mdc-btn-delete"
+                                        @onclick="() => DeleteDeck(deck)"
+                                        @onclick:stopPropagation="true"
+                                        title="Excluir deck">
+                                    <Icon Name="trash" Size="13" />
+                                    Excluir
+                                </button>
+                                <div class="mdc-actions">
+                                    <button class="btn-secondary mdc-btn"
+                                            @onclick="() => EditDeck(deck)"
+                                            @onclick:stopPropagation="true">
+                                        <span class="mdc-btn-ic">✎</span> Editar
+                                    </button>
+                                    <button class="btn-primary mdc-btn"
+                                            @onclick="() => ViewDeck(deck)"
+                                            @onclick:stopPropagation="true">
+                                        <span class="mdc-btn-ic">◉</span> Visualizar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                    </article>
+                }
+
+            </div>
+        </div>
+    }
+
 </div>
 
-@if (State.Decks.Count == 0)
-{
-    <div class="empty">
-        <Icon Name="sword" Size="36" />
-
-        <h3>Nenhum deck construído</h3>
-
-        <div>
-            Crie seu primeiro deck para começar a duelar.
-        </div>
-
-        <button class="btn-primary"
-                style="margin-top:16px"
-                @onclick='() => Nav.NavigateTo("/decks/new")'>
-
-            <Icon Name="plus" Size="14" />
-            Construir meu primeiro deck
-        </button>
-    </div>
-}
-else
-{
-    <div class="deck-card-grid">
-
-        @foreach (var d in State.Decks)
-        {
-            var deck = d;
-
-            var previews = deck.Cards
-                .Take(6)
-                .Select(x => State.GetCard(x.Id))
-                .Where(c => c != null)
-                .ToList();
-
-            <div class="deck-card"
-                 @onclick="() => EditDeck(deck)">
-
-                <div class="deck-cover">
-
-                    @if (previews.Count == 0)
-                    {
-                        <div style="
-                            flex:1;
-                            display:grid;
-                            place-items:center;
-                            color:var(--text-dim);
-                            font-size:12px">
-
-                            Deck vazio
-                        </div>
-                    }
-                    else
-                    {
-                        @foreach (var c in previews)
-                        {
-                            <div class="mini-card">
-                                <CardArt Card="c!" Compact="true" />
-                            </div>
-                        }
-                    }
-                </div>
-
-                <div style="
-                    display:flex;
-                    justify-content:space-between;
-                    align-items:flex-start;
-                    gap:10px">
-
-                    <div>
-                        <div style="
-                            font-family:Cinzel,serif;
-                            font-size:17px;
-                            font-weight:700">
-
-                            @deck.Name
-                        </div>
-
-                        <div style="
-                            font-size:12px;
-                            color:var(--text-muted);
-                            margin-top:4px">
-
-                            @deck.Cards.Count cartas
-                        </div>
-                    </div>
-
-                    <div style="display:flex;gap:6px">
-
-                        <button class="icon-btn"
-                                @onclick="() => DeleteDeck(deck)"
-                                @onclick:stopPropagation="true">
-
-                            <Icon Name="trash" Size="14" />
-                        </button>
-                    </div>
-                </div>
-
-                <div style="display:flex;gap:8px;margin-top:14px">
-
-                    <button class="btn-ghost"
-                            style="flex:1"
-                            @onclick="() => EditDeck(deck)"
-                            @onclick:stopPropagation="true">
-
-                        <Icon Name="edit" Size="13" />
-                        Editar
-                    </button>
-
-                    <button class="btn-primary"
-                            style="flex:1;justify-content:center"
-                            @onclick="() => StartPurchase(deck)"
-                            @onclick:stopPropagation="true">
-
-                        <Icon Name="pack" Size="14" />
-                        Comprar 5
-                    </button>
-                </div>
-            </div>
-        }
-    </div>
-}
-
 @code {
+
+    string search = "";
+    string sort = "updated";
+
+    static readonly string[] Banners = new[]
+    {
+        "linear-gradient(135deg, #1e0b4d 0%, #5b21b6 50%, #4c1d95 100%)",
+        "linear-gradient(135deg, #3a0e08 0%, #dc2626 50%, #7c2d12 100%)",
+        "linear-gradient(135deg, #020617 0%, #1e3a8a 50%, #0c0a09 100%)",
+        "linear-gradient(135deg, #1a0a3c 0%, #fde68a 50%, #a78bfa 100%)",
+        "linear-gradient(135deg, #082f49 0%, #22d3ee 50%, #0e7490 100%)",
+        "linear-gradient(135deg, #052e16 0%, #16a34a 50%, #14532d 100%)",
+        "linear-gradient(135deg, #450a0a 0%, #dc2626 50%, #7f1d1d 100%)"
+    };
+
+    static string BannerGradient(string deckId) =>
+        Banners[Math.Abs(deckId.GetHashCode()) % Banners.Length];
+
+    IEnumerable<Deck> FilteredDecks
+    {
+        get
+        {
+            var result = State.Decks.AsEnumerable();
+            if (!string.IsNullOrWhiteSpace(search))
+                result = result.Where(d => d.Name.Contains(search, StringComparison.OrdinalIgnoreCase));
+            return sort == "name"
+                ? result.OrderBy(d => d.Name)
+                : result;
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
         State.OnChange += StateHasChanged;
 
         if (State.Cards.Count == 0)
-        {
             await State.LoadCardsFromApiAsync(CardApiService);
-        }
 
         await State.LoadDecksFromApiAsync(DeckApiService);
     }
 
-    public void Dispose()
-    {
-        State.OnChange -= StateHasChanged;
-    }
+    public void Dispose() => State.OnChange -= StateHasChanged;
 
-    void EditDeck(Deck d)
-    {
-        Nav.NavigateTo($"/decks/{d.Id}");
-    }
-
-    void StartPurchase(Deck d)
-    {
-        Nav.NavigateTo($"/booster/{d.Id}");
-    }
+    void EditDeck(Deck d) => Nav.NavigateTo($"/decks/{d.Id}");
+    void ViewDeck(Deck d) => Nav.NavigateTo($"/decks/{d.Id}/showcase");
 
     async Task DeleteDeck(Deck d)
     {
-        var ok = await JS.InvokeAsync<bool>(
-            "confirm",
-            $"Excluir o deck '{d.Name}'?"
-        );
-
-        if (!ok)
-        {
-            return;
-        }
-
+        var ok = await JS.InvokeAsync<bool>("confirm", $"Excluir o deck '{d.Name}'?");
+        if (!ok) return;
         await State.DeleteDeckAsync(d, DeckApiService);
-
-        await State.LoadDecksFromApiAsync(DeckApiService);
-
         StateHasChanged();
     }
 }

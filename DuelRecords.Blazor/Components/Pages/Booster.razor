@@ -1,18 +1,40 @@
 @page "/booster/{DeckId}"
+
 @using DuelRecords.Blazor.Models
 @using DuelRecords.Blazor.Services
 @using DuelRecords.Blazor.Components.Shared
 
 @inject AppState State
 @inject NavigationManager Nav
+
 @implements IDisposable
 
 @code {
     [Parameter] public string DeckId { get; set; } = "";
 
     Deck? deck;
-    string stage = "intro"; // intro | opening | revealed
+    string stage = "intro";
     List<Card> picks = new();
+
+    static readonly string[] Banners = new[]
+    {
+        "linear-gradient(135deg, #1e0b4d 0%, #5b21b6 50%, #4c1d95 100%)",
+        "linear-gradient(135deg, #3a0e08 0%, #dc2626 50%, #7c2d12 100%)",
+        "linear-gradient(135deg, #020617 0%, #1e3a8a 50%, #0c0a09 100%)",
+        "linear-gradient(135deg, #1a0a3c 0%, #fde68a 50%, #a78bfa 100%)",
+        "linear-gradient(135deg, #082f49 0%, #22d3ee 50%, #0e7490 100%)",
+        "linear-gradient(135deg, #052e16 0%, #16a34a 50%, #14532d 100%)",
+        "linear-gradient(135deg, #450a0a 0%, #dc2626 50%, #7f1d1d 100%)"
+    };
+
+    string PackGradient =>
+        Banners[Math.Abs(DeckId.GetHashCode()) % Banners.Length];
+
+    static bool IsRare(string rarity) =>
+        rarity is "Super Rara" or "Ultra Rara" or "Secreta";
+
+    static string RarityClass(string rarity) =>
+        rarity.ToLower().Replace(" ", "-");
 
     protected override void OnInitialized() => State.OnChange += StateHasChanged;
     public void Dispose() => State.OnChange -= StateHasChanged;
@@ -25,8 +47,13 @@
     async Task OpenPack()
     {
         if (deck == null) return;
-        var deckCards = deck.Cards.Select(x => State.GetCard(x.Id)).Where(c => c != null).Select(c => c!).ToList();
+        var deckCards = deck.Cards
+            .Select(x => State.GetCard(x.Id))
+            .Where(c => c != null)
+            .Select(c => c!)
+            .ToList();
         if (deckCards.Count == 0) return;
+
         stage = "opening";
         StateHasChanged();
 
@@ -41,7 +68,16 @@
             for (int i = 0; i < w; i++) weighted.Add(c);
         }
         var rng = new Random();
-        picks = Enumerable.Range(0, 5).Select(_ => weighted[rng.Next(weighted.Count)]).ToList();
+        picks = Enumerable.Range(0, 5)
+            .Select(_ => weighted[rng.Next(weighted.Count)])
+            .ToList();
+
+        if (!picks.Any(c => IsRare(c.Rarity)))
+        {
+            var rares = deckCards.Where(c => IsRare(c.Rarity)).ToList();
+            if (rares.Count > 0)
+                picks[4] = rares[rng.Next(rares.Count)];
+        }
 
         await Task.Delay(700);
         stage = "revealed";
@@ -49,74 +85,84 @@
     }
 
     void Reset() { stage = "intro"; picks.Clear(); }
-    void Confirm() => Nav.NavigateTo("/");
+    void GoBack() => Nav.NavigateTo("/decks");
 }
 
 <div class="page-head">
     <div class="page-title">
-        <button class="icon-btn" @onclick='() => Nav.NavigateTo("/decks")' style="margin-right:4px">
+        <button class="icon-btn"
+                @onclick='() => Nav.NavigateTo("/decks")'
+                style="margin-right:4px">
             <Icon Name="arrowLeft" Size="16" />
         </button>
         <div class="icon-bubble"><Icon Name="pack" Size="22" /></div>
         <div>
-            <h1>Primeira Compra</h1>
-            <div class="sub">5 cartas aleatórias do seu deck "@(deck?.Name ?? "—")".</div>
+            <h1>Abrir Pacote</h1>
+            <div class="sub">5 cartas aleatórias do deck "@(deck?.Name ?? "—")".</div>
         </div>
     </div>
 </div>
 
 <div class="booster-stage">
+
     @if (stage == "intro")
     {
-        <div class="booster-pack" @onclick="OpenPack">
+        <div class="booster-pack"
+             style="background:radial-gradient(circle at 30% 30%, rgba(255,255,255,0.18), transparent 60%), @PackGradient"
+             @onclick="OpenPack">
             <div class="pack-flair">
                 <span>★ DUEL</span>
                 <span>5 CARDS</span>
             </div>
-            <div class="pack-label">Primeira<br />Carta</div>
+            <div class="pack-label">@(deck?.Name.ToUpper() ?? "DECK")</div>
             <div class="pack-bottom">CLIQUE PARA ABRIR</div>
         </div>
         <div style="margin-top:30px;text-align:center;max-width:460px">
-            <h3 style="font-family:Cinzel,serif;font-size:20px;margin:0 0 8px">Pronto para o primeiro duelo?</h3>
+            <h3 style="font-family:Cinzel,serif;font-size:20px;margin:0 0 8px">
+                Pronto para o próximo duelo?
+            </h3>
             <p style="color:var(--text-muted);line-height:1.6;font-size:14px">
-                Você está prestes a comprar 5 cartas aleatórias do deck que construiu. Esta é a sua mão inicial — boa sorte, Duelista.
+                5 cartas aleatórias do deck que você construiu. Boa sorte, Duelista.
             </p>
         </div>
     }
     else if (stage == "opening")
     {
-        <div class="booster-pack opening">
+        <div class="booster-pack opening"
+             style="background:radial-gradient(circle at 30% 30%, rgba(255,255,255,0.18), transparent 60%), @PackGradient">
             <div class="pack-label" style="opacity:0.4">Abrindo…</div>
         </div>
     }
     else
     {
-        <h2 style="font-family:Cinzel,serif;font-size:26px;margin:0 0 6px;text-align:center">
-            <Icon Name="sparkles" Size="22" /> Suas 5 cartas
-        </h2>
-        <p style="color:var(--text-muted);margin-bottom:30px;font-size:14px">Toque em cada carta para vê-la em detalhes.</p>
-        <div class="reveal-grid">
-            @for (int i = 0; i < picks.Count; i++)
-            {
-                var c = picks[i];
-                var rare = c.Rarity is "Ultra Rara" or "Secreta";
-                var delay = $"animation-delay:{i * 180}ms";
-                <div class="reveal-card @(rare ? "rare" : "")" style="@delay">
-                    <div style="aspect-ratio:59/86;border-radius:10px;position:relative;overflow:hidden;box-shadow:@(rare ? "0 0 0 1px var(--accent), 0 0 40px -4px var(--accent-glow)" : "0 10px 24px -8px rgba(0,0,0,0.5)")">
-                        <CardArt Card="c" />
+        <div class="reveal-stage">
+            <div class="reveal-grid">
+                @for (int i = 0; i < picks.Count; i++)
+                {
+                    var c = picks[i];
+                    var rare = IsRare(c.Rarity);
+                    var rarityClass = RarityClass(c.Rarity);
+                    var delay = $"animation-delay:{i * 150}ms";
+                    <div class="reveal-card @(rare ? "rare" : "")" style="@delay">
+                        <div class="reveal-card-frame" style="position:relative;overflow:hidden">
+                            <CardArt Card="c" />
+                            @if (rare)
+                            {
+                                <div class="rarity-flare @rarityClass"></div>
+                            }
+                        </div>
+                        <div class="reveal-card-meta">
+                            <div class="reveal-card-name">@c.Name</div>
+                            <div class="reveal-card-rarity" data-r="@c.Rarity">@c.Rarity</div>
+                        </div>
                     </div>
-                    <div style="margin-top:10px;font-size:13px;font-weight:600;text-align:center">@c.Name</div>
-                    <div style="font-size:11px;color:@(rare ? "var(--accent-2)" : "var(--text-muted)");text-align:center;margin-top:2px;font-weight:600">@c.Rarity</div>
-                </div>
-            }
-        </div>
-        <div style="display:flex;gap:10px;margin-top:36px">
-            <button class="btn-ghost" @onclick="Reset">
-                <Icon Name="shuffle" Size="14" /> Tirar outras
-            </button>
-            <button class="btn-primary" @onclick="Confirm">
-                <Icon Name="cart" Size="14" /> Confirmar compra
-            </button>
+                }
+            </div>
+            <div class="reveal-actions">
+                <button class="btn-ghost" @onclick="GoBack">Voltar ao Álbum</button>
+                <button class="btn-primary" @onclick="Reset">Abrir Outro Pacote</button>
+            </div>
         </div>
     }
+
 </div>

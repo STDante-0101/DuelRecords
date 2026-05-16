@@ -1,6 +1,5 @@
 using DuelRecords.Blazor.Components;
 using DuelRecords.Blazor.Services;
-using DuelRecords.Blazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 

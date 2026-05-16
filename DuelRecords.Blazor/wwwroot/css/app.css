@@ -822,7 +822,9 @@ input, select, textarea { font-family: inherit; }
 
 /* Booster pack reveal */
 .booster-stage {
-  min-height: calc(100vh - 80px);
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   padding: 40px 20px;
   position: relative;

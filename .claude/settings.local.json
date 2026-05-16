@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Recurse -Directory -Name \"bin\",\"obj\")",
+      "Bash(Measure-Object)",
+      "Bash(Select-Object -ExpandProperty Count)",
+      "PowerShell(Get-ChildItem -Path \"E:\\\\Projetos\\\\DuelRecords\" -Recurse -Directory | Where-Object { $_.Name -eq \"bin\" -or $_.Name -eq \"obj\" } | Select-Object FullName)",
+      "Bash(dotnet build *)",
+      "Bash(xargs grep -l \"showcase\\\\|NavLink\\\\|href\")",
+      "Bash(xargs grep -l \"ImageUrl\\\\|imageUrl\")"
+    ]
+  }
+}

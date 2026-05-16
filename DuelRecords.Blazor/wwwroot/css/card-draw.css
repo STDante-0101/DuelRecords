@@ -1,0 +1,176 @@
+/* Card Draw kit — builds on source/app.css's .booster-pack and animations. */
+
+.draw-page { padding: 22px 32px 40px; height: 100vh; overflow-y: auto; }
+
+/* Pack-select shelf (modeled after the Master Duel "pack-select" screenshot) */
+.pack-shelf {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  margin: 18px 0 28px;
+}
+.pack-tile {
+  position: relative;
+  display: flex; flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  background: linear-gradient(180deg, var(--panel-2), var(--panel));
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: transform 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
+  font-family: inherit;
+}
+.pack-tile:hover { transform: translateY(-4px); border-color: var(--accent); }
+.pack-tile.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent), 0 12px 30px -10px var(--accent-glow), 0 0 35px -6px var(--accent-glow);
+  transform: translateY(-4px);
+}
+.pack-tile-flag {
+  position: absolute; top: 14px; right: 14px;
+  font-family: "Cinzel", serif;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(10, 6, 18, 0.6);
+  color: var(--accent-2);
+  border: 1px solid rgba(167, 139, 250, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 2;
+}
+.pack-tile-thumb {
+  height: 150px;
+  border-radius: 10px;
+  position: relative;
+  border: 1px solid rgba(168, 139, 250, 0.4);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06), 0 10px 22px -10px rgba(0,0,0,0.6);
+  display: grid; place-items: center;
+  overflow: hidden;
+}
+.pack-tile-label {
+  font-family: "Cinzel", serif;
+  color: #fff;
+  font-weight: 800;
+  font-size: 14px;
+  text-align: center;
+  letter-spacing: 0.04em;
+  padding: 0 8px;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.6);
+}
+.pack-tile-name {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+/* CTA region — selected pack big preview + open button */
+.draw-cta {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 32px;
+  align-items: center;
+  background: linear-gradient(180deg, var(--panel-2), var(--panel));
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px;
+}
+.draw-cta-info { display: flex; flex-direction: column; gap: 10px; }
+.draw-pack-name { font-family: "Cinzel", serif; font-size: 28px; font-weight: 800; color: var(--text); margin: 4px 0; }
+.draw-pack-desc { font-size: 14px; line-height: 1.6; color: var(--text-muted); max-width: 540px; }
+.btn-primary.big { padding: 14px 22px; font-size: 15px; align-self: flex-start; margin-top: 8px; }
+
+.draw-cta .booster-pack { width: 200px; height: 290px; }
+.draw-cta .booster-pack .pack-label { font-size: 22px; }
+
+.draw-flash {
+  margin-top: 36px;
+  font-family: "Cinzel", serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--accent-2);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.04); }
+}
+
+/* Reveal stage */
+.reveal-stage {
+  width: 100%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 30px 20px;
+  gap: 28px;
+}
+.reveal-grid { display: flex; gap: 18px; flex-wrap: wrap; justify-content: center; }
+.reveal-card {
+  width: 180px;
+  display: flex; flex-direction: column;
+  gap: 10px;
+  opacity: 0;
+  transform: translateY(40px) scale(0.85);
+  animation: rise 600ms cubic-bezier(.2,.7,.2,1) forwards;
+}
+.reveal-card.rare { animation: rise-rare 800ms cubic-bezier(.2,.7,.2,1) forwards; }
+@keyframes rise {
+  from { opacity: 0; transform: translateY(40px) scale(0.85); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes rise-rare {
+  0%   { opacity: 0; transform: translateY(40px) scale(0.85); filter: brightness(0.6); }
+  60%  { opacity: 1; transform: translateY(-8px) scale(1.05); filter: brightness(1.6); }
+  100% { opacity: 1; transform: none; filter: brightness(1); }
+}
+.reveal-card-frame {
+  position: relative;
+  aspect-ratio: 59 / 86;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 18px 36px -10px rgba(0,0,0,0.6);
+}
+.reveal-card.rare .reveal-card-frame {
+  box-shadow: 0 18px 40px -10px rgba(0,0,0,0.7), 0 0 0 2px var(--accent-glow), 0 0 50px -6px var(--accent-glow);
+}
+.rarity-flare {
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background: linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.3) 45%, rgba(255,255,255,0.5) 50%, rgba(255,255,255,0.3) 55%, transparent 70%);
+  background-size: 220% 220%;
+  background-position: 200% 0%;
+  mix-blend-mode: screen;
+  animation: holosweep 1.6s ease-out infinite;
+}
+@keyframes holosweep {
+  0%   { background-position: 200% 0%; }
+  100% { background-position: -200% 0%; }
+}
+.rarity-flare.ultra-rara { background: linear-gradient(115deg, transparent 30%, rgba(253,230,138,0.4) 45%, rgba(212,166,74,0.6) 50%, rgba(253,230,138,0.4) 55%, transparent 70%); background-size: 220% 220%; mix-blend-mode: screen; }
+.rarity-flare.secreta { background: conic-gradient(from 0deg, rgba(167,139,250,0.6), rgba(34,211,238,0.6), rgba(236,72,153,0.6), rgba(167,139,250,0.6)); animation: rotate 3s linear infinite; mix-blend-mode: screen; opacity: 0.6; }
+@keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.reveal-card-meta { display: flex; flex-direction: column; gap: 4px; text-align: center; }
+.reveal-card-name { font-size: 12.5px; font-weight: 700; color: var(--text); line-height: 1.2; }
+.reveal-card-rarity {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(154,143,184,0.15);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  align-self: center;
+}
+.reveal-card-rarity[data-r="Rara"]       { background: rgba(34,211,238,0.12); color: var(--cyan); border-color: rgba(34,211,238,0.4); }
+.reveal-card-rarity[data-r="Super Rara"] { background: rgba(167,139,250,0.16); color: var(--accent-2); border-color: rgba(167,139,250,0.45); }
+.reveal-card-rarity[data-r="Ultra Rara"] { background: linear-gradient(90deg,#fde68a,#f59e0b); color: #3a1c08; border-color: #d4a64a; }
+.reveal-card-rarity[data-r="Secreta"]    { background: linear-gradient(90deg,#a78bfa,#ec4899); color: #fff; border-color: rgba(255,255,255,0.2); }
+
+.reveal-actions { display: flex; gap: 12px; }
