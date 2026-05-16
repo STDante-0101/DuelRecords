@@ -37,8 +37,6 @@ public class DeckService : IDeckService
 
     public async Task<DeckResponseDto> CreateAsync(CreateDeckDto dto)
     {
-        throw new Exception("TESTE NOVO CODIGO");
-
         var now = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);
 
         var deck = new Deck
@@ -61,6 +59,7 @@ public class DeckService : IDeckService
 
         return (await GetByIdAsync(deck.Id))!;
     }
+
     public async Task<bool> UpdateAsync(int id, UpdateDeckDto dto)
     {
         var deck = await _context.Decks
