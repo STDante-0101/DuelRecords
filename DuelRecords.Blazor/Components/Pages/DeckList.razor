@@ -265,15 +265,7 @@
         if (State.Cards.Count == 0)
             await State.LoadCardsFromApiAsync(CardApiService);
         await State.LoadDecksFromApiAsync(DeckApiService);
-    }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            await LoadCoverPrefsAsync();
-            StateHasChanged();
-        }
+        await LoadCoverPrefsAsync();
     }
 
     public void Dispose() => State.OnChange -= StateHasChanged;
