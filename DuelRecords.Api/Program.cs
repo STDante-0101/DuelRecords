@@ -38,6 +38,21 @@ app.MapControllers();
 using (var scope = app.Services.CreateScope())
 {
     var mundoZeroDbContext = scope.ServiceProvider.GetRequiredService<MundoZeroDbContext>();
+
+    // Remove entrada inconsistente do histórico: migration marcada como aplicada mas tabela ausente
+    try
+    {
+        mundoZeroDbContext.Database.ExecuteSqlRaw("""
+            DELETE FROM "__EFMigrationsHistory"
+            WHERE "MigrationId" = '20260517000001_AdicionarDeckPrefs'
+              AND NOT EXISTS (
+                SELECT 1 FROM information_schema.tables
+                WHERE table_schema = 'public' AND table_name = 'DeckPrefs'
+              )
+            """);
+    }
+    catch { } // tabela de histórico pode ainda não existir no primeiro boot
+
     mundoZeroDbContext.Database.Migrate();
 
     var alexandriaDbContext = scope.ServiceProvider.GetRequiredService<AlexandriaDbContext>();
