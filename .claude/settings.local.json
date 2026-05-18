@@ -17,7 +17,9 @@
       "Bash(dotnet tool *)",
       "Bash(Select-String -Pattern \"error|warning|Build succeeded\")",
       "Bash(Select-Object -First 40)",
-      "PowerShell(dotnet build *)"
+      "PowerShell(dotnet build *)",
+      "Bash(Get-ChildItem -Path \"E:\\\\Projetos\\\\DuelRecords\" -Directory)",
+      "Bash(Select-Object Name)"
     ]
   }
 }

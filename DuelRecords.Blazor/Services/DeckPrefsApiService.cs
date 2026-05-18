@@ -36,21 +36,18 @@ public class DeckPrefsApiService : IDeckPrefsApiService
 
     public async Task SavePrefsAsync(int deckId, DeckCoverPrefs prefs)
     {
-        try
+        var dto = new DeckPrefsDto
         {
-            var dto = new DeckPrefsDto
-            {
-                BannerIndex = prefs.BannerIndex,
-                FeaturedCardId = prefs.FeaturedCardId,
-                FanCardIds = prefs.FanCardIds,
-                Tags = prefs.Tags,
-                CustomBannerImages = prefs.CustomBannerImages,
-                IsFavorite = prefs.IsFavorite,
-                GlowAttribute = prefs.GlowAttribute
-            };
-            await _http.PutAsJsonAsync($"{_base}/api/deck-prefs/{deckId}", dto);
-        }
-        catch { }
+            BannerIndex = prefs.BannerIndex,
+            FeaturedCardId = prefs.FeaturedCardId,
+            FanCardIds = prefs.FanCardIds,
+            Tags = prefs.Tags,
+            CustomBannerImages = prefs.CustomBannerImages,
+            IsFavorite = prefs.IsFavorite,
+            GlowAttribute = prefs.GlowAttribute
+        };
+        var response = await _http.PutAsJsonAsync($"{_base}/api/deck-prefs/{deckId}", dto);
+        response.EnsureSuccessStatusCode();
     }
 
     private class DeckPrefsDto

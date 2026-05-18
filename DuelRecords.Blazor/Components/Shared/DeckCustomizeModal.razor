@@ -19,6 +19,7 @@
     bool uploading;
     string? selectedSlot;
     string? uploadError;
+    string? saveError;
 
     static readonly string[] SlotOrder = { "featured", "fan0", "fan1", "fan2", "fan3", "fan4" };
 
@@ -160,13 +161,22 @@
 
     async Task SaveAndClose()
     {
+        saveError = null;
         salvando = true;
         try
         {
-            if (int.TryParse(Deck.Id, out var deckId))
-                await DeckPrefsApiService.SavePrefsAsync(deckId, prefs);
+            if (!int.TryParse(Deck.Id, out var deckId))
+            {
+                saveError = "ID do deck inválido.";
+                return;
+            }
+            await DeckPrefsApiService.SavePrefsAsync(deckId, prefs);
             await OnSaved.InvokeAsync();
             await OnClose.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            saveError = $"Erro ao salvar: {ex.Message}";
         }
         finally { salvando = false; }
     }
@@ -399,6 +409,10 @@
     </div>
 
     <!-- ── Footer ─────────────────────────────────── -->
+    @if (!string.IsNullOrEmpty(saveError))
+    {
+        <div style="font-size:12px;color:var(--crimson);padding:6px 16px 0">@saveError</div>
+    }
     <div class="modal-foot">
         <button class="btn-ghost" @onclick="OnClose" disabled="@salvando">Cancelar</button>
         <button class="btn-primary" @onclick="SaveAndClose" disabled="@salvando">
