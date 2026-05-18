@@ -5,9 +5,10 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents()
+    .AddCircuitOptions(o => o.DetailedErrors = true)
     .AddHubOptions(options =>
     {
-        options.MaximumReceiveMessageSize = 32 * 1024 * 1024; // 32 MB para uploads de imagem
+        options.MaximumReceiveMessageSize = 32 * 1024 * 1024;
     });
 
 builder.Services.AddScoped<HttpClient>();
