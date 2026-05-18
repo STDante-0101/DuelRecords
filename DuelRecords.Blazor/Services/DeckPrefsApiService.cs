@@ -47,7 +47,11 @@ public class DeckPrefsApiService : IDeckPrefsApiService
             GlowAttribute = prefs.GlowAttribute
         };
         var response = await _http.PutAsJsonAsync($"{_base}/api/deck-prefs/{deckId}", dto);
-        response.EnsureSuccessStatusCode();
+        if (!response.IsSuccessStatusCode)
+        {
+            var body = await response.Content.ReadAsStringAsync();
+            throw new HttpRequestException($"HTTP {(int)response.StatusCode}: {body}");
+        }
     }
 
     private class DeckPrefsDto
