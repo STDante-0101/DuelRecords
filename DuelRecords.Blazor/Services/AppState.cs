@@ -1,4 +1,5 @@
 using DuelRecords.Blazor.Models;
+using Microsoft.JSInterop;
 
 namespace DuelRecords.Blazor.Services;
 
@@ -119,6 +120,34 @@ public class AppState
     public Card? GetCard(string id)
     {
         return Cards.FirstOrDefault(c => c.Id == id);
+    }
+
+    public HashSet<string> FavoriteIds { get; private set; } = new();
+
+    public bool IsFavorite(string cardId) => FavoriteIds.Contains(cardId);
+
+    public async Task LoadFavoritesAsync(IJSRuntime js)
+    {
+        try
+        {
+            var json = await js.InvokeAsync<string?>("localStorage.getItem", "dr_favorites");
+            if (!string.IsNullOrEmpty(json))
+            {
+                var ids = System.Text.Json.JsonSerializer.Deserialize<List<string>>(json);
+                FavoriteIds = new HashSet<string>(ids ?? new());
+            }
+        }
+        catch { }
+        Notify();
+    }
+
+    public async Task ToggleFavoriteAsync(IJSRuntime js, string cardId)
+    {
+        if (!FavoriteIds.Remove(cardId))
+            FavoriteIds.Add(cardId);
+        var json = System.Text.Json.JsonSerializer.Serialize(FavoriteIds.ToList());
+        await js.InvokeVoidAsync("localStorage.setItem", "dr_favorites", json);
+        Notify();
     }
 
     public void Notify()

@@ -13,72 +13,75 @@
     [Parameter]
     public bool AlwaysShowQty { get; set; }
 
+    [Parameter]
+    public bool Favorited { get; set; }
+
+    [Parameter]
+    public EventCallback<Card> OnFavoriteToggle { get; set; }
+
     private async Task HandleCardClick()
     {
         if (OnClick.HasDelegate)
-        {
             await OnClick.InvokeAsync();
-        }
     }
 
     private async Task HandleDetailsClick()
     {
         if (OnDetails.HasDelegate)
-        {
             await OnDetails.InvokeAsync(Card);
-        }
+    }
+
+    private async Task HandleFavClick()
+    {
+        if (OnFavoriteToggle.HasDelegate)
+            await OnFavoriteToggle.InvokeAsync(Card);
     }
 }
 
-<div class="card-tile @(AlwaysShowQty ? "always-show-qty" : "")"
+<div class="card-tile @(AlwaysShowQty ? "always-show-qty" : "") @(Favorited ? "favorited" : "")"
      @onclick="HandleCardClick">
 
-    <div class="qty-chip">
-        <span class="x">×</span> @Card.Qty
-    </div>
-
     <div class="card-frame">
-        <CardArt Card="Card" />
-    </div>
+        <CardArt Card="Card" Compact="true" />
 
-    <div class="quick-actions">
-        <button type="button"
-                class="quick-btn"
-                @onclick="HandleDetailsClick"
-                @onclick:stopPropagation="true">
-
-            <Icon Name="eye" Size="13" />
-            Detalhes
-        </button>
-    </div>
-
-    <div class="card-meta">
-        <div class="card-name">
-            @Card.Name
+        <div class="qty-chip">
+            <span class="x">×</span> @Card.Qty
         </div>
 
-        <div class="card-stats">
-            @if (Card.Type == "Monstro")
-            {
-                <span class="card-level">
-                    <Icon Name="star" Size="12" />
-                    @Card.Level
-                </span>
+        @if (OnFavoriteToggle.HasDelegate)
+        {
+            <button type="button"
+                    class="card-fav-btn @(Favorited ? "active" : "")"
+                    @onclick="HandleFavClick"
+                    @onclick:stopPropagation="true"
+                    title="@(Favorited ? "Remover dos favoritos" : "Favoritar")">
+                ★
+            </button>
+        }
 
-                <span class="card-atk">
-                    ATK @Card.Atk
-                </span>
-            }
-            else
-            {
-                <span class="@(Card.Type == "Magia" ? "type-tag-spell" : "type-tag-trap")">
-                    @Card.Type
-                </span>
-
-                <span class="card-atk" style="font-size:11px">
-                    @Card.Kind
-                </span>
-            }
+        <!-- Unified hover panel — name + stats + Detalhes -->
+        <div class="card-hover-panel">
+            <div class="chp-name">@Card.Name</div>
+            <div class="chp-stats">
+                @if (Card.Type == "Monstro")
+                {
+                    <span class="chp-level">★ @Card.Level</span>
+                    <span class="chp-atk">ATK @Card.Atk</span>
+                }
+                else
+                {
+                    <span class="@(Card.Type == "Magia" ? "type-tag-spell" : "type-tag-trap") chp-kind">@Card.Type</span>
+                    <span class="chp-atk">@Card.Kind</span>
+                }
+            </div>
+            <button type="button"
+                    class="card-details-btn"
+                    @onclick="HandleDetailsClick"
+                    @onclick:stopPropagation="true">
+                <Icon Name="eye" Size="11" />
+                Detalhes
+            </button>
         </div>
     </div>
+
 </div>

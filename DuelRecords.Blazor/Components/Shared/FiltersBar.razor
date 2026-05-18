@@ -20,7 +20,8 @@
             Type = Filters.Type,
             Attribute = Filters.Attribute,
             Level = Filters.Level,
-            Kind = Filters.Kind
+            Kind = Filters.Kind,
+            OnlyFavorites = Filters.OnlyFavorites
         };
 
         mutate(next);
@@ -63,8 +64,8 @@
         <span class="field-label">Tipo</span>
 
         <select class="select"
-                value="@Filters.Type"
-                @onchange="async e => await Update(f => f.Type = e.Value?.ToString())">
+                @bind:get="Filters.Type"
+                @bind:set="async v => await Update(f => f.Type = v)">
             <option value="">Todos</option>
 
             @foreach (var t in CardCatalog.Types)
@@ -78,8 +79,8 @@
         <span class="field-label">Atributo</span>
 
         <select class="select"
-                value="@Filters.Attribute"
-                @onchange="async e => await Update(f => f.Attribute = e.Value?.ToString())">
+                @bind:get="Filters.Attribute"
+                @bind:set="async v => await Update(f => f.Attribute = v)">
             <option value="">Todos</option>
 
             @foreach (var a in CardCatalog.Attributes)
@@ -93,8 +94,8 @@
         <span class="field-label">Nível</span>
 
         <select class="select"
-                value="@Filters.Level"
-                @onchange="async e => await Update(f => f.Level = e.Value?.ToString())">
+                @bind:get="Filters.Level"
+                @bind:set="async v => await Update(f => f.Level = v)">
             <option value="">Todos</option>
 
             @for (int l = 1; l <= 12; l++)
@@ -108,8 +109,8 @@
         <span class="field-label">Tipo de Card</span>
 
         <select class="select"
-                value="@Filters.Kind"
-                @onchange="async e => await Update(f => f.Kind = e.Value?.ToString())">
+                @bind:get="Filters.Kind"
+                @bind:set="async v => await Update(f => f.Kind = v)">
             <option value="">Todos</option>
 
             @foreach (var k in CardCatalog.Kinds)
@@ -123,8 +124,8 @@
         <span class="field-label">Ordenar por</span>
 
         <select class="select"
-                value="@Sort"
-                @onchange='async e => await SortChanged.InvokeAsync(e.Value?.ToString() ?? "name-asc")'>
+                @bind:get="Sort"
+                @bind:set='async v => await SortChanged.InvokeAsync(v ?? "name-asc")'>
             <option value="name-asc">Nome (A-Z)</option>
             <option value="name-desc">Nome (Z-A)</option>
             <option value="atk-desc">ATK (Maior)</option>
@@ -132,6 +133,14 @@
             <option value="qty-desc">Quantidade</option>
             <option value="rarity">Raridade</option>
         </select>
+    </div>
+
+    <div class="field">
+        <span class="field-label">Favoritos</span>
+        <button class="fav-filter-btn @(Filters.OnlyFavorites ? "active" : "")"
+                @onclick='async () => await Update(f => f.OnlyFavorites = !Filters.OnlyFavorites)'>
+            ★ @(Filters.OnlyFavorites ? "Apenas favoritos" : "Todos")
+        </button>
     </div>
 
     <button class="clear-btn" @onclick="OnClear">

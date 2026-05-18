@@ -14,6 +14,7 @@ public class MundoZeroDbContext : DbContext
     public DbSet<Card> Cards { get; set; }
     public DbSet<Deck> Decks { get; set; }
     public DbSet<DeckCard> DeckCards { get; set; }
+    public DbSet<DeckPrefs> DeckPrefs { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -76,6 +77,16 @@ public class MundoZeroDbContext : DbContext
 
         modelBuilder.Entity<DeckCard>()
             .HasIndex(dc => new { dc.DeckId, dc.CardId, dc.Secao })
+            .IsUnique();
+
+        modelBuilder.Entity<DeckPrefs>()
+            .HasOne(p => p.Deck)
+            .WithOne()
+            .HasForeignKey<DeckPrefs>(p => p.DeckId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<DeckPrefs>()
+            .HasIndex(p => p.DeckId)
             .IsUnique();
     }
 }

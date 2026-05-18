@@ -105,6 +105,49 @@ namespace DuelRecords.Api.Migrations.MundoZero
                     b.ToTable("Decks");
                 });
 
+            modelBuilder.Entity("DuelRecords.Api.Models.DeckPrefs", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("BannerIndex")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("CustomBannerImages")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("DataAtualizacao")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("DeckId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("FanCardIds")
+                        .HasColumnType("text");
+
+                    b.Property<string>("FeaturedCardId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("GlowAttribute")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsFavorite")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Tags")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DeckId")
+                        .IsUnique();
+
+                    b.ToTable("DeckPrefs");
+                });
+
             modelBuilder.Entity("DuelRecords.Api.Models.DeckCard", b =>
                 {
                     b.Property<int>("Id")
@@ -153,6 +196,17 @@ namespace DuelRecords.Api.Migrations.MundoZero
                         .IsRequired();
 
                     b.Navigation("Card");
+
+                    b.Navigation("Deck");
+                });
+
+            modelBuilder.Entity("DuelRecords.Api.Models.DeckPrefs", b =>
+                {
+                    b.HasOne("DuelRecords.Api.Models.Deck", "Deck")
+                        .WithOne()
+                        .HasForeignKey("DuelRecords.Api.Models.DeckPrefs", "DeckId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Deck");
                 });

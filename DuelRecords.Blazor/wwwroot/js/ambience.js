@@ -38,5 +38,9 @@ window.duelRecords = {
     setCssVar: (name, value) => {
         document.documentElement.style.setProperty(name, value);
     },
-    confirm: (message) => window.confirm(message)
+    confirm: (message) => window.confirm(message),
+    scrollPageToTop: () => {
+        const el = document.querySelector('.page-scroll-content');
+        if (el) el.scrollTop = 0;
+    }
 };

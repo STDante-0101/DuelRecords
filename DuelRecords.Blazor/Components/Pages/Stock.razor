@@ -6,16 +6,6 @@
 @inject AppState State
 @implements IDisposable
 
-<div class="page-head">
-    <div class="page-title">
-        <div class="icon-bubble"><Icon Name="box" Size="22" /></div>
-        <div>
-            <h1>Estoque</h1>
-            <div class="sub">Acompanhe a quantidade de cada card da sua coleção.</div>
-        </div>
-    </div>
-</div>
-
 @{
     var totalCards = State.Cards.Sum(c => c.Qty);
     var unique = State.Cards.Count;
@@ -25,39 +15,69 @@
         : State.Cards.Where(c => c.Name.ToLower().Contains(q.ToLower())).ToList();
 }
 
-<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:22px">
-    <StatCard Label="Cards na coleção" Value="@totalCards.ToString()" Sub="cópias totais" />
-    <StatCard Label="Cards únicos"     Value="@unique.ToString()"     Sub="@($"{State.Cards.Count} entradas")" />
-    <StatCard Label="Raridades altas"  Value="@rare.ToString()"       Sub="Ultra & Secretas" />
-</div>
-
-<div style="margin-bottom:14px;max-width:380px">
-    <div class="input-wrap">
-        <input class="input" placeholder="Buscar no estoque…"
-               value="@q" @oninput="e => q = e.Value?.ToString() ?? string.Empty"
-               style="width:100%" />
-        <span class="icon"><Icon Name="search" Size="15" /></span>
+<div class="page-fixed-top">
+    <div class="page-head">
+        <div class="page-title">
+            <div class="icon-bubble"><Icon Name="box" Size="22" /></div>
+            <div>
+                <h1>Estoque</h1>
+                <div class="sub">Acompanhe a quantidade de cada card da sua coleção.</div>
+            </div>
+        </div>
+        <button class="btn-ghost stock-stats-toggle"
+                @onclick="() => statsCollapsed = !statsCollapsed"
+                title="@(statsCollapsed ? "Mostrar estatísticas" : "Ocultar estatísticas")">
+            @(statsCollapsed ? "▼ Estatísticas" : "▲ Ocultar")
+        </button>
     </div>
-</div>
 
-<div class="stock-table">
-    <div class="stock-row head">
-        <span></span><span>Nome</span><span>Tipo</span><span>Atributo</span>
-        <span>Raridade</span><span>Edição</span><span style="text-align:right">Quantidade</span>
-    </div>
-    @foreach (var c in filtered)
+    @if (!statsCollapsed)
     {
-        var card = c;
-        <div class="stock-row" @onclick="() => openCard = card" style="cursor:pointer">
-            <div class="thumb"><CardArt Card="card" Compact="true" /></div>
-            <span style="font-weight:600">@card.Name</span>
-            <span style="color:var(--text-muted)">@card.Type</span>
-            <span style="color:var(--text-muted)">@(card.Attribute ?? "—")</span>
-            <span style="color:var(--text-muted)">@card.Rarity</span>
-            <span style="color:var(--text-dim);font-family:monospace;font-size:12px">@card.Set</span>
-            <span style="text-align:right"><span class="qty-pill">×@card.Qty</span></span>
+        <div class="stock-stats-grid">
+            <StatCard Label="Cards na coleção" Value="@totalCards.ToString()" Sub="cópias totais" />
+            <StatCard Label="Cards únicos"     Value="@unique.ToString()"     Sub="@($"{State.Cards.Count} entradas")" />
+            <StatCard Label="Raridades altas"  Value="@rare.ToString()"       Sub="Ultra & Secretas" />
         </div>
     }
+
+    <div class="stock-search-row">
+        <div class="input-wrap" style="max-width:380px;width:100%">
+            <input class="input" placeholder="Buscar no estoque…"
+                   value="@q" @oninput="e => q = e.Value?.ToString() ?? string.Empty"
+                   style="width:100%" />
+            <span class="icon"><Icon Name="search" Size="15" /></span>
+        </div>
+        <span class="stock-count-badge">@filtered.Count @(filtered.Count == 1 ? "card" : "cards")</span>
+    </div>
+
+    <!-- Cabeçalho da tabela fixo — fora do stock-table para sticky funcionar -->
+    <div class="stock-row stock-thead">
+        <span></span>
+        <span>Nome</span>
+        <span>Tipo</span>
+        <span>Atributo</span>
+        <span>Raridade</span>
+        <span>Edição</span>
+        <span style="text-align:right">Quantidade</span>
+    </div>
+</div>
+
+<div class="page-scroll-content">
+    <div class="stock-table stock-body">
+        @foreach (var c in filtered)
+        {
+            var card = c;
+            <div class="stock-row" @onclick="() => openCard = card" style="cursor:pointer">
+                <div class="thumb"><CardArt Card="card" Compact="true" /></div>
+                <span style="font-weight:600">@card.Name</span>
+                <span style="color:var(--text-muted)">@card.Type</span>
+                <span style="color:var(--text-muted)">@(card.Attribute ?? "—")</span>
+                <span style="color:var(--text-muted)">@card.Rarity</span>
+                <span style="color:var(--text-dim);font-family:monospace;font-size:12px">@card.Set</span>
+                <span style="text-align:right"><span class="qty-pill">×@card.Qty</span></span>
+            </div>
+        }
+    </div>
 </div>
 
 @if (openCard != null)
@@ -67,6 +87,7 @@
 
 @code {
     string q = string.Empty;
+    bool statsCollapsed;
     Card? openCard;
 
     protected override void OnInitialized() => State.OnChange += StateHasChanged;

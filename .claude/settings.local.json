@@ -7,7 +7,17 @@
       "PowerShell(Get-ChildItem -Path \"E:\\\\Projetos\\\\DuelRecords\" -Recurse -Directory | Where-Object { $_.Name -eq \"bin\" -or $_.Name -eq \"obj\" } | Select-Object FullName)",
       "Bash(dotnet build *)",
       "Bash(xargs grep -l \"showcase\\\\|NavLink\\\\|href\")",
-      "Bash(xargs grep -l \"ImageUrl\\\\|imageUrl\")"
+      "Bash(xargs grep -l \"ImageUrl\\\\|imageUrl\")",
+      "Bash(Get-ChildItem -Path \"E:\\\\Projetos\\\\DuelRecords\" -Force)",
+      "Bash(Select-Object Name, PSIsContainer)",
+      "Bash(Select-String -Pattern \"^.*error CS|^.*error RZ|^.*warning CS\")",
+      "Bash(Select-String -Pattern \"Estoque|Stock|Inventory\" -List)",
+      "Bash(xargs grep -l -i \"estoque\\\\|stock\\\\|inventory\")",
+      "Bash(xargs grep -l \"stock\\\\|estoque\")",
+      "Bash(dotnet tool *)",
+      "Bash(Select-String -Pattern \"error|warning|Build succeeded\")",
+      "Bash(Select-Object -First 40)",
+      "PowerShell(dotnet build *)"
     ]
   }
 }

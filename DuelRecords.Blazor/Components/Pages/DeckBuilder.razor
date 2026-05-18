@@ -328,7 +328,7 @@
     }
 
     RenderFragment SlotGrid(string section, int max) => @<div class="deck-slot-grid"
-                                                              style=@($"grid-template-columns: repeat({(section == "main" ? 10 : 5)}, 1fr)")>
+                                                              style=@($"grid-template-columns: repeat(6, 1fr)")>
         @{
             var entries = new List<(int idx, DeckCardEntry e)>();
 
@@ -516,32 +516,36 @@
                 </div>
             }
 
-            <div class="deck-section @(activeSection == "main" ? "mobile-active-section" : "")">
-                <div class="deck-section-head">
-                    <span>Deck Principal</span>
-                    <span>@main</span>
+            @if (activeSection == "main")
+            {
+                <div class="deck-section deck-section-active">
+                    <div class="deck-section-head">
+                        <span>Deck Principal</span>
+                        <span class="@(main >= 40 && main <= 60 ? "ok-text" : main > 0 ? "warn-text" : "")">@main / 40-60</span>
+                    </div>
+                    @SlotGrid("main", 40)
                 </div>
-
-                @SlotGrid("main", 40)
-            </div>
-
-            <div class="deck-section compact-extra @(activeSection == "extra" ? "mobile-active-section" : "")">
-                <div class="deck-section-head">
-                    <span>Extra Deck</span>
-                    <span>@extra/15</span>
+            }
+            else if (activeSection == "extra")
+            {
+                <div class="deck-section deck-section-active">
+                    <div class="deck-section-head">
+                        <span>Extra Deck</span>
+                        <span class="@(extra <= 15 ? "" : "warn-text")">@extra / 15</span>
+                    </div>
+                    @SlotGrid("extra", 15)
                 </div>
-
-                @SlotGrid("extra", 15)
-            </div>
-
-            <div class="deck-section compact-side @(activeSection == "side" ? "mobile-active-section" : "")">
-                <div class="deck-section-head">
-                    <span>Side Deck</span>
-                    <span>@side/15</span>
+            }
+            else
+            {
+                <div class="deck-section deck-section-active">
+                    <div class="deck-section-head">
+                        <span>Side Deck</span>
+                        <span class="@(side <= 15 ? "" : "warn-text")">@side / 15</span>
+                    </div>
+                    @SlotGrid("side", 15)
                 </div>
-
-                @SlotGrid("side", 15)
-            </div>
+            }
 
         </div>
     </aside>

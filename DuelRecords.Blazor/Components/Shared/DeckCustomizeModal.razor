@@ -1,0 +1,411 @@
+@using DuelRecords.Blazor.Models
+@using DuelRecords.Blazor.Services
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.JSInterop
+
+@inject IJSRuntime JS
+@inject IImageApiService ImageApiService
+@inject IDeckPrefsApiService DeckPrefsApiService
+
+@code {
+    [Parameter] public Deck Deck { get; set; } = null!;
+    [Parameter] public List<Card> DeckCards { get; set; } = new();
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback OnSaved { get; set; }
+
+    DeckCoverPrefs prefs = new();
+    string tagInput = "";
+    bool salvando;
+    bool uploading;
+    string? selectedSlot;
+    string? uploadError;
+
+    static readonly string[] SlotOrder = { "featured", "fan0", "fan1", "fan2", "fan3", "fan4" };
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (int.TryParse(Deck.Id, out var deckId))
+            prefs = await DeckPrefsApiService.GetPrefsAsync(deckId);
+    }
+
+    string CurrentBannerStyle
+    {
+        get
+        {
+            var idx = prefs.BannerIndex ?? (Math.Abs(Deck.Id.GetHashCode()) % DeckCovers.BannerPresets.Length);
+            if (idx < DeckCovers.BannerPresets.Length)
+                return DeckCovers.BannerPresets[idx].Gradient;
+            var ci = idx - DeckCovers.BannerPresets.Length;
+            if (ci < prefs.CustomBannerImages.Count)
+                return $"url('{prefs.CustomBannerImages[ci]}') center / cover no-repeat";
+            return DeckCovers.BannerPresets[0].Gradient;
+        }
+    }
+
+    Card? PreviewFeaturedCard => !string.IsNullOrEmpty(prefs.FeaturedCardId)
+        ? DeckCards.FirstOrDefault(c => c.Id == prefs.FeaturedCardId)
+        : DeckCards.FirstOrDefault();
+
+    List<Card> PreviewFanCards
+    {
+        get
+        {
+            var featuredId = PreviewFeaturedCard?.Id;
+            if (prefs.FanCardIds.Any(id => !string.IsNullOrEmpty(id)))
+                return prefs.FanCardIds.Where(id => !string.IsNullOrEmpty(id))
+                    .Select(id => DeckCards.FirstOrDefault(c => c.Id == id))
+                    .Where(c => c != null).Select(c => c!).Take(5).ToList();
+            return DeckCards.Where(c => c.Id != featuredId).Take(5).ToList();
+        }
+    }
+
+    void ToggleSlot(string slot) =>
+        selectedSlot = selectedSlot == slot ? null : slot;
+
+    Card? GetSlotCard(string slot)
+    {
+        if (slot == "featured")
+            return string.IsNullOrEmpty(prefs.FeaturedCardId) ? null
+                : DeckCards.FirstOrDefault(c => c.Id == prefs.FeaturedCardId);
+        if (slot.StartsWith("fan") && int.TryParse(slot.AsSpan(3), out var fi)
+            && fi < prefs.FanCardIds.Count && !string.IsNullOrEmpty(prefs.FanCardIds[fi]))
+            return DeckCards.FirstOrDefault(c => c.Id == prefs.FanCardIds[fi]);
+        return null;
+    }
+
+    void ClearSlot(string slot)
+    {
+        if (slot == "featured") { prefs.FeaturedCardId = null; return; }
+        if (slot.StartsWith("fan") && int.TryParse(slot.AsSpan(3), out var fi) && fi < prefs.FanCardIds.Count)
+            prefs.FanCardIds[fi] = "";
+    }
+
+    void AssignCard(Card card)
+    {
+        if (selectedSlot == null) return;
+        if (selectedSlot == "featured")
+            prefs.FeaturedCardId = card.Id;
+        else if (selectedSlot.StartsWith("fan") && int.TryParse(selectedSlot.AsSpan(3), out var fi))
+        {
+            while (prefs.FanCardIds.Count <= fi) prefs.FanCardIds.Add("");
+            prefs.FanCardIds[fi] = card.Id;
+        }
+        var cur = Array.IndexOf(SlotOrder, selectedSlot);
+        selectedSlot = cur + 1 < SlotOrder.Length ? SlotOrder[cur + 1] : null;
+    }
+
+    bool IsCardAssigned(Card card) =>
+        prefs.FeaturedCardId == card.Id || prefs.FanCardIds.Any(id => id == card.Id);
+
+    void SelectBanner(int index) => prefs.BannerIndex = index;
+
+    void RemoveCustomBanner(int ci)
+    {
+        if (ci >= prefs.CustomBannerImages.Count) return;
+        prefs.CustomBannerImages.RemoveAt(ci);
+        var threshold = DeckCovers.BannerPresets.Length + ci;
+        if (prefs.BannerIndex == threshold) prefs.BannerIndex = null;
+        else if (prefs.BannerIndex > threshold) prefs.BannerIndex--;
+    }
+
+    async Task OnCustomBannerAdded(InputFileChangeEventArgs e)
+    {
+        uploadError = null;
+        uploading = true;
+        StateHasChanged();
+        const long maxSize = 31_457_280;
+        if (e.File.Size > maxSize) { uploadError = "Imagem muito grande. Máximo 30 MB."; uploading = false; StateHasChanged(); return; }
+        try
+        {
+            using var ms = new MemoryStream();
+            await using var browserStream = e.File.OpenReadStream(maxSize);
+            await browserStream.CopyToAsync(ms);
+            ms.Position = 0;
+
+            var (url, error) = await ImageApiService.UploadDeckCoverAsync(ms, e.File.Name);
+            if (url == null) { uploadError = error ?? "Erro ao enviar imagem ao servidor."; return; }
+            prefs.CustomBannerImages.Add(url);
+            prefs.BannerIndex = DeckCovers.BannerPresets.Length + prefs.CustomBannerImages.Count - 1;
+        }
+        catch (Exception ex) { uploadError = $"Erro: {ex.Message}"; }
+        finally { uploading = false; StateHasChanged(); }
+    }
+
+    void AddTag()
+    {
+        var t = tagInput.Trim().ToLower();
+        if (!string.IsNullOrEmpty(t) && !prefs.Tags.Contains(t, StringComparer.OrdinalIgnoreCase))
+            prefs.Tags.Add(t);
+        tagInput = "";
+    }
+
+    void RemoveTag(string t) => prefs.Tags.Remove(t);
+    void OnTagKeyDown(KeyboardEventArgs e) { if (e.Key == "Enter") AddTag(); }
+
+    static readonly string[] Attributes = { "Trevas", "Luz", "Fogo", "Água", "Terra", "Vento", "Divino" };
+
+    static string AttrGlyph(string? attr) => attr switch
+    {
+        "Trevas" => "☾", "Luz" => "✦", "Fogo" => "♦",
+        "Água" => "◈", "Terra" => "⬡", "Vento" => "↻",
+        "Divino" => "★", _ => "○"
+    };
+
+    static string AttrColorRgb(string? attr) => attr switch
+    {
+        "Trevas" => "139,92,246", "Luz" => "250,204,21", "Fogo" => "239,68,68",
+        "Água" => "34,211,238", "Terra" => "16,185,129", "Vento" => "134,239,172",
+        "Divino" => "212,166,74", _ => "255,255,255"
+    };
+
+    async Task SaveAndClose()
+    {
+        salvando = true;
+        try
+        {
+            if (int.TryParse(Deck.Id, out var deckId))
+                await DeckPrefsApiService.SavePrefsAsync(deckId, prefs);
+            await OnSaved.InvokeAsync();
+            await OnClose.InvokeAsync();
+        }
+        finally { salvando = false; }
+    }
+}
+
+<div class="modal-overlay" @onclick="OnClose">
+<div class="modal modal-customize" @onclick:stopPropagation="true">
+
+    <!-- ── Header ─────────────────────────────────── -->
+    <div class="modal-head">
+        <div>
+            <div class="eyebrow" style="margin-bottom:3px">PERSONALIZAR</div>
+            <h2>@Deck.Name</h2>
+        </div>
+        <button class="close-btn" @onclick="OnClose"><Icon Name="close" Size="16"/></button>
+    </div>
+
+    <!-- ── Prévia ao vivo ─────────────────────────── -->
+    <div class="cust-preview-wrap">
+        <div class="dc-cover cust-cover-live" style="background:@CurrentBannerStyle">
+            <div class="dc-cover-tint"></div>
+            <div class="dc-cover-glow"></div>
+            <div class="dc-cover-fan">
+                @for (int fi = 0; fi < PreviewFanCards.Count; fi++)
+                {
+                    var fc = PreviewFanCards[fi];
+                    <div class="dc-fan-mini" style="--i:@fi">
+                        <CardArt Card="fc" Compact="true"/>
+                    </div>
+                }
+            </div>
+            @if (PreviewFeaturedCard != null)
+            {
+                <div class="dc-featured-wrap">
+                    <div class="dc-featured-glow"></div>
+                    <div class="dc-cover-featured">
+                        <CardArt Card="PreviewFeaturedCard" Compact="true"/>
+                    </div>
+                </div>
+            }
+            <div class="dc-cover-shine"></div>
+            <div class="cust-preview-badge">PRÉVIA AO VIVO</div>
+        </div>
+    </div>
+
+    <!-- ── Fundo do Deck ─────────────────────────── -->
+    <div class="cust-section">
+        <span class="field-label">FUNDO DO DECK</span>
+        <div class="cust-banner-row">
+
+            @for (int bi = 0; bi < DeckCovers.BannerPresets.Length; bi++)
+            {
+                var idx = bi;
+                var (label, gradient) = DeckCovers.BannerPresets[bi];
+                var isSel = (prefs.BannerIndex ?? (Math.Abs(Deck.Id.GetHashCode()) % DeckCovers.BannerPresets.Length)) == idx;
+                <button type="button"
+                        class="banner-swatch @(isSel ? "selected" : "")"
+                        style="background:@gradient"
+                        @onclick="() => SelectBanner(idx)"
+                        title="@label">
+                    <span class="banner-swatch-label">@label</span>
+                </button>
+            }
+
+            @for (int ci = 0; ci < prefs.CustomBannerImages.Count; ci++)
+            {
+                var customIdx = ci;
+                var totalIdx = DeckCovers.BannerPresets.Length + ci;
+                var isSel = prefs.BannerIndex == totalIdx;
+                <div class="cust-img-swatch-wrap">
+                    <button type="button"
+                            class="banner-swatch cust-img-swatch @(isSel ? "selected" : "")"
+                            style="background:url('@prefs.CustomBannerImages[customIdx]') center/cover no-repeat"
+                            @onclick="() => SelectBanner(totalIdx)"
+                            title="Imagem personalizada">
+                        <span class="banner-swatch-label">Foto</span>
+                    </button>
+                    <button type="button" class="cust-img-remove" @onclick="() => RemoveCustomBanner(customIdx)" title="Remover imagem">×</button>
+                </div>
+            }
+
+            <label class="banner-swatch-add @(uploading ? "uploading" : "")" title="Adicionar imagem de fundo (até 30 MB)">
+                @if (uploading)
+                {
+                    <span class="upload-spinner"></span>
+                    <span>Enviando...</span>
+                }
+                else
+                {
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/>
+                    </svg>
+                    <span>Imagem</span>
+                }
+                <InputFile OnChange="OnCustomBannerAdded" accept=".png,.jpg,.jpeg,.webp" style="display:none" disabled="@uploading"/>
+            </label>
+        </div>
+        @if (!string.IsNullOrEmpty(uploadError))
+        {
+            <div style="font-size:12px;color:var(--crimson);margin-top:5px">@uploadError</div>
+        }
+    </div>
+
+    <!-- ── Cartas da Capa ─────────────────────────── -->
+    <div class="cust-section">
+        <div class="cust-cards-header">
+            <span class="field-label">CARTAS DA CAPA</span>
+            <span class="cust-hint @(selectedSlot != null ? "active" : "")">
+                @(selectedSlot != null ? "✦ Clique em uma carta abaixo para atribuir" : "Selecione um slot para começar")
+            </span>
+        </div>
+
+        <!-- Slots visuais -->
+        <div class="cust-slots-row">
+            @for (int si = 0; si < SlotOrder.Length; si++)
+            {
+                var slotKey = SlotOrder[si];
+                var isFeatured = slotKey == "featured";
+                var slotCard = GetSlotCard(slotKey);
+                var isActive = selectedSlot == slotKey;
+                var label = isFeatured ? "Destaque" : $"Fan {si}";
+
+                <div class="cust-slot @(isFeatured ? "slot-featured" : "slot-fan") @(isActive ? "slot-active" : "") @(slotCard != null ? "slot-filled" : "")"
+                     @onclick="() => ToggleSlot(slotKey)">
+                    <div class="cust-slot-frame">
+                        @if (slotCard != null)
+                        {
+                            <CardArt Card="slotCard" Compact="true"/>
+                            <button class="cust-slot-clear" @onclick:stopPropagation="true" @onclick="() => ClearSlot(slotKey)" title="Remover carta">×</button>
+                        }
+                        else
+                        {
+                            <span class="cust-slot-icon">@(isActive ? "✦" : "+")</span>
+                        }
+                    </div>
+                    <span class="cust-slot-label">@label</span>
+                </div>
+            }
+        </div>
+
+        <!-- Grid de cartas do deck -->
+        <div class="cust-deck-grid-wrap @(selectedSlot != null ? "selecting" : "")">
+            @if (!string.IsNullOrEmpty(selectedSlot))
+            {
+                <div class="cust-grid-hint">
+                    Escolhendo para: <strong>@(selectedSlot == "featured" ? "Destaque" : $"Fan {Array.IndexOf(SlotOrder, selectedSlot)}")</strong>
+                </div>
+            }
+            <div class="cust-deck-grid">
+                @if (DeckCards.Count == 0)
+                {
+                    <div class="cust-grid-empty">Adicione cartas ao deck primeiro</div>
+                }
+                else
+                {
+                    @foreach (var card in DeckCards)
+                    {
+                        var c = card;
+                        var assigned = IsCardAssigned(c);
+                        <div class="cust-card @(assigned ? "card-assigned" : "") @(selectedSlot != null ? "card-pickable" : "")"
+                             @onclick="() => AssignCard(c)"
+                             title="@c.Name">
+                            <div class="cust-card-art">
+                                <CardArt Card="c" Compact="true"/>
+                            </div>
+                            @if (assigned)
+                            {
+                                <div class="cust-card-check">✓</div>
+                            }
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Atributo / Brilho ────────────────────── -->
+    <div class="cust-section">
+        <span class="field-label">ATRIBUTO DO BRILHO</span>
+        <div class="cust-attr-row">
+            @foreach (var attr in Attributes)
+            {
+                var a = attr;
+                var rgb = AttrColorRgb(a);
+                var selected = prefs.GlowAttribute == a;
+                <button type="button"
+                        class="attr-swatch @(selected ? "selected" : "")"
+                        style="--attr-glow: rgba(@rgb,0.7); --attr-glow-soft: rgba(@rgb,0.12);"
+                        @onclick="() => prefs.GlowAttribute = selected ? null : a"
+                        title="@a">
+                    <span class="attr-glyph">@AttrGlyph(a)</span>
+                    <span class="attr-label">@a</span>
+                </button>
+            }
+        </div>
+    </div>
+
+    <!-- ── Tags ──────────────────────────────────── -->
+    <div class="cust-section cust-section-last">
+        <span class="field-label">TAGS DO DECK</span>
+        <div class="cust-tag-row">
+            <input class="input"
+                   style="flex:1;min-width:0"
+                   placeholder="Ex: controle, ritual, competitivo..."
+                   @bind="tagInput"
+                   @bind:event="oninput"
+                   @onkeydown="OnTagKeyDown"/>
+            <button type="button" class="btn-secondary" style="height:38px;padding:0 14px;font-size:12.5px;white-space:nowrap;flex-shrink:0" @onclick="AddTag">
+                + Adicionar
+            </button>
+        </div>
+        @if (prefs.Tags.Count > 0)
+        {
+            <div class="tag-chips">
+                @foreach (var tag in prefs.Tags)
+                {
+                    var t = tag;
+                    <span class="tag-chip">
+                        @t
+                        <button type="button" class="tag-chip-remove" @onclick="() => RemoveTag(t)">×</button>
+                    </span>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="cust-tags-empty">Tags permitem filtrar decks na lista principal.</div>
+        }
+    </div>
+
+    <!-- ── Footer ─────────────────────────────────── -->
+    <div class="modal-foot">
+        <button class="btn-ghost" @onclick="OnClose" disabled="@salvando">Cancelar</button>
+        <button class="btn-primary" @onclick="SaveAndClose" disabled="@salvando">
+            <Icon Name="check" Size="14"/>
+            @(salvando ? "Salvando..." : "Salvar personalização")
+        </button>
+    </div>
+
+</div>
+</div>

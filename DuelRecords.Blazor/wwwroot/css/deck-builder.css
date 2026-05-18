@@ -1,4 +1,17 @@
-﻿/* Deck Builder */
+﻿
+/* Active section — taller slots */
+.deck-section-active .deck-slot-grid {
+    min-height: 80px;
+}
+.deck-section-active .deck-slot {
+    min-height: 48px;
+}
+
+/* ok/warn text helpers */
+.ok-text  { color: var(--green) !important; }
+.warn-text { color: var(--orange) !important; }
+
+/* Deck Builder */
 
 /* =========================
    DESKTOP / HORIZONTAL
@@ -7,8 +20,10 @@
 .deck-builder-layout {
     display: grid;
     grid-template-columns: 1fr 420px;
+    grid-template-rows: 1fr;
     gap: 20px;
-    height: calc(100vh - 180px);
+    flex: 1;
+    min-height: 0;
     overflow: hidden;
 }
 
@@ -21,11 +36,10 @@
 
 .builder-top-fixed {
     flex-shrink: 0;
-    position: sticky;
-    top: 0;
-    z-index: 20;
     background: var(--bg);
     padding-bottom: 14px;
+    position: relative;
+    z-index: 2;
 }
 
 .builder-cards-scroll {

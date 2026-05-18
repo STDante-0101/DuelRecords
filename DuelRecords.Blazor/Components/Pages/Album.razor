@@ -65,6 +65,7 @@
         var safePage = Math.Min(page, totalPages);
         var startIdx = (safePage - 1) * perPage;
         var visible = filtered.Skip(startIdx).Take(perPage).ToList();
+        visibleCards = visible;
 
         @if (visible.Count == 0)
         {
@@ -80,43 +81,104 @@
                     var card = c;
 
                     <CardTile Card="card"
-                              OnClick="() => OpenCard(card)"
-                              OnDetails="OpenCard" />
+                              OnClick="() => OpenFocus(card)"
+                              OnDetails="OpenCard"
+                              Favorited="@State.IsFavorite(card.Id)"
+                              OnFavoriteToggle="ToggleFavorite" />
                 }
             </div>
         }
 
         <div class="pagination">
-            <span></span>
+            <span class="pager-info">
+                Mostrando @(filtered.Count == 0 ? 0 : startIdx + 1)
+                a @Math.Min(startIdx + perPage, filtered.Count)
+                de @filtered.Count cards
+            </span>
 
             <div class="pager">
-                <button class="page-btn" @onclick="PreviousPage">
-                    &lt;
+                <button class="page-btn page-nav"
+                        @onclick="PreviousPage"
+                        disabled="@(safePage == 1)"
+                        title="Página anterior">
+                    ‹
                 </button>
 
                 @for (int i = 1; i <= totalPages; i++)
                 {
                     var p = i;
-
                     <button class="page-btn @(p == safePage ? "active" : "")"
                             @onclick="() => GoToPage(p)">
                         @p
                     </button>
                 }
 
-                <button class="page-btn" @onclick="() => NextPage(totalPages)">
-                    &gt;
+                <button class="page-btn page-nav"
+                        @onclick="() => NextPage(totalPages)"
+                        disabled="@(safePage == totalPages)"
+                        title="Próxima página">
+                    ›
                 </button>
             </div>
 
-            <span>
-                Mostrando @(filtered.Count == 0 ? 0 : startIdx + 1)
-                a @Math.Min(startIdx + perPage, filtered.Count)
-                de @filtered.Count cards
+            <span class="pager-info pager-info-right">
+                Página @safePage de @totalPages
             </span>
         </div>
     }
 </div>
+
+@if (focusedCard != null)
+{
+    <div class="sc-focus-overlay" @onclick="() => focusedCard = null">
+        <button class="sc-focus-close"
+                @onclick="() => focusedCard = null"
+                @onclick:stopPropagation="true">✕</button>
+
+        <div class="sc-focus-stage" @onclick:stopPropagation="true">
+            <div class="sc-focus-card @slideDir" @key="@animKey" style="position:relative;overflow:hidden">
+                <CardArt Card="focusedCard" />
+            </div>
+            <div class="sc-focus-info">
+                <div class="sc-archetype-row">
+                    <span class="sc-format-chip">@focusedCard.Rarity.ToUpper()</span>
+                    <span class="sc-archetype-chip">@focusedCard.Kind</span>
+                </div>
+                <h2>@focusedCard.Name</h2>
+                @if (focusedCard.Type == "Monstro")
+                {
+                    <div class="sc-focus-stats">
+                        <div><label>ATK</label><b class="numeric">@(focusedCard.Atk?.ToString() ?? "?")</b></div>
+                        @if (focusedCard.Def.HasValue)
+                        {
+                            <div><label>DEF</label><b class="numeric">@focusedCard.Def</b></div>
+                        }
+                        @if (focusedCard.Level.HasValue)
+                        {
+                            <div><label>Nível</label><b class="numeric">@focusedCard.Level</b></div>
+                        }
+                    </div>
+                }
+                <p class="desc">@focusedCard.Description</p>
+                <button class="btn-secondary"
+                        style="margin-top:auto;align-self:flex-start"
+                        @onclick="() => { OpenCard(focusedCard); focusedCard = null; }">
+                    <Icon Name="edit" Size="14" />
+                    Detalhes
+                </button>
+            </div>
+        </div>
+
+        @if (visibleCards.Count > 1)
+        {
+            <div class="sc-focus-nav-row" @onclick:stopPropagation="true">
+                <button class="btn-secondary" @onclick="() => NavigateFocus(-1)">‹ Anterior</button>
+                <span class="sc-focus-nav-counter">@(focusedIndex + 1) / @visibleCards.Count</span>
+                <button class="btn-secondary" @onclick="() => NavigateFocus(1)">Próximo ›</button>
+            </div>
+        }
+    </div>
+}
 
 @if (openCard != null)
 {
@@ -136,12 +198,36 @@
     private string sort = "name-asc";
     private CardFilters filters = new();
     private Card? openCard;
+    private Card? focusedCard;
     private bool showRegister;
+
+    private List<Card> visibleCards = new();
+    private int focusedIndex;
+    private int animKey;
+    private string slideDir = "";
+
+    private void OpenFocus(Card card)
+    {
+        focusedCard = card;
+        focusedIndex = visibleCards.IndexOf(card);
+        slideDir = "";
+        animKey++;
+    }
+
+    private void NavigateFocus(int delta)
+    {
+        if (visibleCards.Count == 0) return;
+        slideDir = delta > 0 ? "from-right" : "from-left";
+        focusedIndex = (focusedIndex + delta + visibleCards.Count) % visibleCards.Count;
+        focusedCard = visibleCards[focusedIndex];
+        animKey++;
+    }
 
     protected override async Task OnInitializedAsync()
     {
         State.OnChange += StateHasChanged;
         await State.LoadCardsFromApiAsync(CardApiService);
+        await State.LoadFavoritesAsync(JS);
     }
 
     private async Task OnCardUpdatedAsync(Card card)
@@ -192,19 +278,22 @@
         }
     }
 
-    private void PreviousPage()
+    private async Task PreviousPage()
     {
         page = Math.Max(1, page - 1);
+        await JS.InvokeVoidAsync("duelRecords.scrollPageToTop");
     }
 
-    private void NextPage(int totalPages)
+    private async Task NextPage(int totalPages)
     {
         page = Math.Min(totalPages, page + 1);
+        await JS.InvokeVoidAsync("duelRecords.scrollPageToTop");
     }
 
-    private void GoToPage(int p)
+    private async Task GoToPage(int p)
     {
         page = p;
+        await JS.InvokeVoidAsync("duelRecords.scrollPageToTop");
     }
 
     private void OnFiltersChanged(CardFilters f)
@@ -259,6 +348,11 @@
                     return false;
                 }
 
+                if (filters.OnlyFavorites && !State.IsFavorite(c.Id))
+                {
+                    return false;
+                }
+
                 return true;
             })
             .ToList();
@@ -273,6 +367,11 @@
             "rarity" => arr.OrderByDescending(c => CardCatalog.RarityRank(c.Rarity)).ToList(),
             _ => arr
         };
+    }
+
+    private async Task ToggleFavorite(Card card)
+    {
+        await State.ToggleFavoriteAsync(JS, card.Id);
     }
 
     private async Task OnRegisterModalClose()

@@ -3,11 +3,14 @@
 @using DuelRecords.Blazor.Models
 @using DuelRecords.Blazor.Services
 @using DuelRecords.Blazor.Components.Shared
+@using Microsoft.JSInterop
 
 @inject AppState State
 @inject NavigationManager Nav
 @inject IDeckApiService DeckApiService
 @inject ICardApiService CardApiService
+@inject IDeckPrefsApiService DeckPrefsApiService
+@inject IJSRuntime JS
 
 @implements IDisposable
 
@@ -24,9 +27,9 @@ else
     <div class="showcase-page">
 
         <!-- Hero -->
-        <header class="sc-hero">
-            <div class="sc-hero-bg" style="background:@BannerGradient(deck.Id)"></div>
-            <div class="sc-hero-bg-blur" style="background:@BannerGradient(deck.Id)"></div>
+        <header class="sc-hero" style="@AttrGlowStyle">
+            <div class="sc-hero-bg" style="background:@HeroBannerStyle"></div>
+            <div class="sc-hero-bg-blur" style="background:@HeroBannerStyle"></div>
             <div class="sc-hero-glow"></div>
             <div class="sc-hero-noise"></div>
             <div class="sc-hero-tint"></div>
@@ -41,22 +44,28 @@ else
                         @onclick="@(() => Nav.NavigateTo($"/decks/{deck.Id}"))">
                     Editar Deck
                 </button>
+                <button class="btn-secondary sc-customize-btn"
+                        @onclick="() => showCustomize = true"
+                        title="Personalizar vitrine">⚙</button>
             </div>
 
             <div class="sc-hero-content">
-                @if (iconCard != null)
-                {
-                    <div class="sc-deck-icon" style="position:relative;overflow:hidden">
-                        <CardArt Card="iconCard" Compact="true" />
-                    </div>
-                }
-                else
-                {
-                    <div class="sc-deck-icon"
-                         style="background:var(--panel-2);display:grid;place-items:center;border-radius:10px">
-                        <Icon Name="sword" Size="32" />
-                    </div>
-                }
+                <div class="sc-deck-icon-wrap">
+                    <div class="sc-deck-icon-glow"></div>
+                    @if (iconCard != null)
+                    {
+                        <div class="sc-deck-icon" style="position:relative;overflow:hidden">
+                            <CardArt Card="iconCard" Compact="true" />
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="sc-deck-icon"
+                             style="background:var(--panel-2);display:grid;place-items:center;border-radius:12px">
+                            <Icon Name="sword" Size="36" />
+                        </div>
+                    }
+                </div>
 
                 <div class="sc-title-block">
                     <div class="sc-archetype-row">
@@ -70,10 +79,11 @@ else
                 </div>
 
                 <div class="sc-featured-rail">
-                    @foreach (var fc in featuredRail)
+                    @for (int ri = 0; ri < featuredRail.Count; ri++)
                     {
-                        <div class="sc-featured-card" title="@fc.Name" style="position:relative;overflow:hidden">
-                            <CardArt Card="fc" Compact="true" />
+                        var rc = featuredRail[ri];
+                        <div class="sc-featured-card" title="@rc.Name" style="position:relative;overflow:hidden">
+                            <CardArt Card="rc" Compact="true" />
                         </div>
                     }
                 </div>
@@ -232,20 +242,19 @@ else
                 else
                 {
                     <div class="sc-card-grid main-grid">
-                        @foreach (var g in GroupCards(mainCards))
+                        @{
+                            var sortedMain = mainCards.OrderBy(c => c.Type == "Monstro" ? 0 : c.Type == "Magia" ? 1 : 2).ThenByDescending(c => c.Level ?? 0).ThenBy(c => c.Name).ToList();
+                        }
+                        @foreach (var c in sortedMain)
                         {
-                            var gc = g;
+                            var card = c;
                             <div class="sc-card"
-                                 @onclick="() => focusedCard = gc.card"
-                                 title="@gc.card.Name">
+                                 @onclick="() => OpenFocus(sortedMain, card)"
+                                 title="@card.Name">
                                 <div class="sc-card-frame" style="position:relative;overflow:hidden">
-                                    <CardArt Card="gc.card" Compact="true" />
-                                    @if (gc.qty > 1)
-                                    {
-                                        <div class="sc-card-qty">×@gc.qty</div>
-                                    }
+                                    <CardArt Card="card" Compact="true" />
                                 </div>
-                                <div class="sc-card-name">@gc.card.Name</div>
+                                <div class="sc-card-name">@card.Name</div>
                             </div>
                         }
                     </div>
@@ -266,20 +275,19 @@ else
                         </span>
                     </div>
                     <div class="sc-card-grid extra-grid">
-                        @foreach (var g in GroupCards(extraCards))
+                        @{
+                            var sortedExtra = extraCards.OrderBy(c => c.Kind).ThenBy(c => c.Name).ToList();
+                        }
+                        @foreach (var c in sortedExtra)
                         {
-                            var gc = g;
+                            var card = c;
                             <div class="sc-card"
-                                 @onclick="() => focusedCard = gc.card"
-                                 title="@gc.card.Name">
+                                 @onclick="() => OpenFocus(sortedExtra, card)"
+                                 title="@card.Name">
                                 <div class="sc-card-frame" style="position:relative;overflow:hidden">
-                                    <CardArt Card="gc.card" Compact="true" />
-                                    @if (gc.qty > 1)
-                                    {
-                                        <div class="sc-card-qty">×@gc.qty</div>
-                                    }
+                                    <CardArt Card="card" Compact="true" />
                                 </div>
-                                <div class="sc-card-name">@gc.card.Name</div>
+                                <div class="sc-card-name">@card.Name</div>
                             </div>
                         }
                     </div>
@@ -300,20 +308,19 @@ else
                         </span>
                     </div>
                     <div class="sc-card-grid side-grid">
-                        @foreach (var g in GroupCards(sideCards))
+                        @{
+                            var sortedSide = sideCards.OrderBy(c => c.Type == "Monstro" ? 0 : c.Type == "Magia" ? 1 : 2).ThenByDescending(c => c.Level ?? 0).ThenBy(c => c.Name).ToList();
+                        }
+                        @foreach (var c in sortedSide)
                         {
-                            var gc = g;
+                            var card = c;
                             <div class="sc-card"
-                                 @onclick="() => focusedCard = gc.card"
-                                 title="@gc.card.Name">
+                                 @onclick="() => OpenFocus(sortedSide, card)"
+                                 title="@card.Name">
                                 <div class="sc-card-frame" style="position:relative;overflow:hidden">
-                                    <CardArt Card="gc.card" Compact="true" />
-                                    @if (gc.qty > 1)
-                                    {
-                                        <div class="sc-card-qty">×@gc.qty</div>
-                                    }
+                                    <CardArt Card="card" Compact="true" />
                                 </div>
-                                <div class="sc-card-name">@gc.card.Name</div>
+                                <div class="sc-card-name">@card.Name</div>
                             </div>
                         }
                     </div>
@@ -324,6 +331,14 @@ else
 
     </div>
 
+    @if (showCustomize)
+    {
+        <DeckCustomizeModal Deck="deck"
+                            DeckCards="GetModalCards()"
+                            OnClose="() => showCustomize = false"
+                            OnSaved="HandleCustomizeSaved" />
+    }
+
     <!-- CinematicFocus overlay -->
     @if (focusedCard != null)
     {
@@ -331,8 +346,9 @@ else
             <button class="sc-focus-close"
                     @onclick="() => focusedCard = null"
                     @onclick:stopPropagation="true">✕</button>
+
             <div class="sc-focus-stage" @onclick:stopPropagation="true">
-                <div class="sc-focus-card" style="position:relative;overflow:hidden">
+                <div class="sc-focus-card @focusSlideDir" @key="@focusAnimKey" style="position:relative;overflow:hidden">
                     <CardArt Card="focusedCard" />
                 </div>
                 <div class="sc-focus-info">
@@ -358,6 +374,15 @@ else
                     <p class="desc">@focusedCard.Description</p>
                 </div>
             </div>
+
+            @if (focusList.Count > 1)
+            {
+                <div class="sc-focus-nav-row" @onclick:stopPropagation="true">
+                    <button class="btn-secondary" @onclick="() => NavigateFocus(-1)">‹ Anterior</button>
+                    <span class="sc-focus-nav-counter">@(focusIdx + 1) / @focusList.Count</span>
+                    <button class="btn-secondary" @onclick="() => NavigateFocus(1)">Próximo ›</button>
+                </div>
+            }
         </div>
     }
 }
@@ -368,12 +393,64 @@ else
 
     Deck? deck;
     Card? focusedCard;
+    bool showCustomize;
+    DeckCoverPrefs coverPrefs = new();
+
+    List<Card> focusList = new();
+    int focusIdx;
+    int focusAnimKey;
+    string focusSlideDir = "";
+
+    void OpenFocus(List<Card> list, Card card)
+    {
+        focusList = list;
+        focusIdx = list.IndexOf(card);
+        focusedCard = card;
+        focusSlideDir = "";
+        focusAnimKey++;
+    }
+
+    void NavigateFocus(int delta)
+    {
+        if (focusList.Count == 0) return;
+        focusSlideDir = delta > 0 ? "from-right" : "from-left";
+        focusIdx = (focusIdx + delta + focusList.Count) % focusList.Count;
+        focusedCard = focusList[focusIdx];
+        focusAnimKey++;
+    }
 
     List<Card> mainCards = new();
     List<Card> extraCards = new();
     List<Card> sideCards = new();
     List<Card> featuredRail = new();
     Card? iconCard;
+
+    string HeroBannerStyle
+    {
+        get
+        {
+            if (deck == null) return Banners[0];
+            if (!coverPrefs.BannerIndex.HasValue)
+                return BannerGradient(deck.Id);
+            var idx = coverPrefs.BannerIndex.Value;
+            if (idx < DeckCovers.BannerPresets.Length)
+                return DeckCovers.BannerPresets[idx].Gradient;
+            var ci = idx - DeckCovers.BannerPresets.Length;
+            if (ci < coverPrefs.CustomBannerImages.Count)
+                return $"url('{coverPrefs.CustomBannerImages[ci]}') center / cover no-repeat";
+            return BannerGradient(deck.Id);
+        }
+    }
+
+    string AttrGlowStyle
+    {
+        get
+        {
+            if (string.IsNullOrEmpty(coverPrefs.GlowAttribute)) return "";
+            var rgb = AttributeColorRgb(coverPrefs.GlowAttribute);
+            return $"--attr-glow: rgba({rgb},0.65); --attr-glow-soft: rgba({rgb},0.12);";
+        }
+    }
 
     int monsters, spells, traps;
     Dictionary<string, int> byKind = new();
@@ -467,6 +544,79 @@ else
 
     public void Dispose() => State.OnChange -= StateHasChanged;
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && deck != null)
+        {
+            await LoadCoverPrefsAsync();
+            StateHasChanged();
+        }
+    }
+
+    async Task LoadCoverPrefsAsync()
+    {
+        if (deck == null) return;
+        try
+        {
+            if (int.TryParse(deck.Id, out var deckId))
+                coverPrefs = await DeckPrefsApiService.GetPrefsAsync(deckId);
+        }
+        catch { }
+        ApplyCoverPrefs();
+    }
+
+    void ApplyCoverPrefs()
+    {
+        if (deck == null) return;
+
+        var allCards = deck.Cards
+            .Select(c => State.GetCard(c.Id))
+            .Where(c => c != null)
+            .Select(c => c!)
+            .ToList();
+
+        if (!string.IsNullOrEmpty(coverPrefs.FeaturedCardId))
+            iconCard = allCards.FirstOrDefault(c => c.Id == coverPrefs.FeaturedCardId) ?? iconCard;
+
+        if (coverPrefs.FanCardIds.Count > 0)
+        {
+            featuredRail = coverPrefs.FanCardIds
+                .Select(id => allCards.FirstOrDefault(c => c.Id == id))
+                .Where(c => c != null)
+                .Select(c => c!)
+                .Take(5)
+                .ToList();
+        }
+    }
+
+    List<Card> GetModalCards() =>
+        deck == null ? new() :
+        deck.Cards
+            .Select(x => State.GetCard(x.Id))
+            .Where(c => c != null)
+            .Select(c => c!)
+            .GroupBy(c => c.Id)
+            .Select(g => g.First())
+            .ToList();
+
+    async Task HandleCustomizeSaved()
+    {
+        await LoadCoverPrefsAsync();
+        StateHasChanged();
+    }
+
+    static string AttributeColorRgb(string? attr) => attr switch
+    {
+        "Trevas" => "139,92,246",
+        "Luz"    => "250,204,21",
+        "Fogo"   => "239,68,68",
+        "Água"   => "34,211,238",
+        "Terra"  => "16,185,129",
+        "Vento"  => "134,239,172",
+        "Divino" => "212,166,74",
+        _        => "167,139,250"
+    };
+
     void ComputeStats()
     {
         if (deck == null) return;
@@ -524,7 +674,7 @@ else
             .Concat(extraCards)
             .DistinctBy(c => c.Id)
             .OrderByDescending(c => CardCatalog.RarityRank(c.Rarity))
-            .Take(3)
+            .Take(5)
             .ToList();
     }
 }

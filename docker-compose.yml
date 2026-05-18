@@ -5,11 +5,10 @@ services:
     container_name: duelrecords-api
     ports:
       - "5001:8080"
-    volumes:
-      - ./data:/app/data
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Data Source=/app/data/duelrecords.db
+      - ConnectionStrings__MundoZeroConnection=Host=192.168.0.2;Port=5432;Database=DuelRecords_MundoZero;Username=duelrecords;Password=duelrecords123
+      - ConnectionStrings__AlexandriaConnection=Host=192.168.0.2;Port=5432;Database=DuelRecords_Alexandria;Username=duelrecords;Password=duelrecords123
 
   duelrecords-blazor:
     build:
@@ -22,3 +21,8 @@ services:
       - ApiSettings__BaseUrl=http://duelrecords-api:8080
     depends_on:
       - duelrecords-api
+    volumes:
+      - blazor-uploads:/app/wwwroot/uploads
+
+volumes:
+  blazor-uploads:

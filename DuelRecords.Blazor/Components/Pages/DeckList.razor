@@ -10,8 +10,17 @@
 @inject IJSRuntime JS
 @inject IDeckApiService DeckApiService
 @inject ICardApiService CardApiService
+@inject IDeckPrefsApiService DeckPrefsApiService
 
 @implements IDisposable
+
+@if (showCustomize && customizeDeck != null)
+{
+    <DeckCustomizeModal Deck="customizeDeck"
+                        DeckCards="GetDistinctDeckCards(customizeDeck)"
+                        OnClose="() => showCustomize = false"
+                        OnSaved="HandleCustomizeSaved" />
+}
 
 <div class="decks-page">
 
@@ -37,7 +46,7 @@
                 <div class="dt-search">
                     <span class="icon">⌕</span>
                     <input class="input"
-                           placeholder="Buscar deck por nome..."
+                           placeholder="Buscar deck por nome ou tag..."
                            @bind="search"
                            @bind:event="oninput" />
                 </div>
@@ -46,6 +55,17 @@
                     <option value="name">Nome (A-Z)</option>
                 </select>
             </div>
+            @if (AllTags.Any())
+            {
+                <div class="dt-tags-row">
+                    <button class="dt-pill @(activeTag == "" ? "on" : "")" @onclick='() => activeTag = ""'>Todos</button>
+                    @foreach (var tag in AllTags)
+                    {
+                        var t = tag;
+                        <button class="dt-pill @(activeTag == t ? "on" : "")" @onclick="() => activeTag = t">@t</button>
+                    }
+                </div>
+            }
         </div>
     }
 
@@ -85,47 +105,70 @@
                         .Select(c => c!)
                         .ToList();
 
-                    var featured = allCards.FirstOrDefault();
-                    var fanCards = allCards.Skip(1).Take(4).ToList();
+                    var featured = GetFeaturedCard(deck, allCards);
+                    var fanCards = GetFanCards(deck, allCards, featured?.Id);
+                    var coverBanner = GetBanner(deck);
+                    var deckTags = GetDeckTags(deck.Id);
 
                     var mainCount = deck.Cards.Count(c => c.Section == "main");
                     var extraCount = deck.Cards.Count(c => c.Section == "extra");
                     var sideCount = deck.Cards.Count(c => c.Section == "side");
                     var legal = mainCount >= 40 && mainCount <= 60 && extraCount <= 15 && sideCount <= 15;
 
-                    <article class="my-deck-card" @onclick="() => ViewDeck(deck)">
+                    <article class="my-deck-card @(IsFavorited(deck.Id) ? "is-favorite" : "")"
+                             style="@GetAttrGlowVars(deck.Id)"
+                             @onclick="() => ViewDeck(deck)">
 
-                        <div class="dc-cover"
-                             style="background:@BannerGradient(deck.Id);height:170px;position:relative;overflow:hidden">
+                        <div class="dc-cover" style="background:@coverBanner">
                             <div class="dc-cover-tint"></div>
                             <div class="dc-cover-glow"></div>
-                            <div class="dc-cover-fan" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);display:flex;z-index:1">
+                            <div class="dc-cover-fan">
                                 @for (int fi = 0; fi < fanCards.Count; fi++)
                                 {
                                     var fc = fanCards[fi];
-                                    <div class="dc-fan-mini" style="--i:@fi;position:relative;overflow:hidden;width:60px;aspect-ratio:59/86">
+                                    <div class="dc-fan-mini" style="--i:@fi">
                                         <CardArt Card="fc" Compact="true" />
                                     </div>
                                 }
                             </div>
                             @if (featured != null)
                             {
-                                <div class="dc-cover-featured" style="position:absolute;right:16px;top:50%;transform:translateY(-50%) rotate(6deg);width:92px;aspect-ratio:59/86;overflow:hidden;border-radius:8px;z-index:2">
-                                    <CardArt Card="featured" Compact="true" />
+                                <div class="dc-featured-wrap">
+                                    <div class="dc-featured-glow"></div>
+                                    <div class="dc-cover-featured">
+                                        <CardArt Card="featured" Compact="true" />
+                                    </div>
                                 </div>
                             }
                             <div class="dc-cover-shine"></div>
+                            <button class="mdc-fav-btn @(IsFavorited(deck.Id) ? "favorited" : "")"
+                                    @onclick:stopPropagation="true"
+                                    @onclick="() => ToggleFavorite(deck)"
+                                    title="@(IsFavorited(deck.Id) ? "Remover dos favoritos" : "Favoritar")">★</button>
                         </div>
 
                         <div class="mdc-body">
                             <div class="mdc-head">
-                                <div>
-                                    <div class="mdc-archetype">DECK</div>
+                                <div style="min-width:0;flex:1">
+                                    @if (deckTags.Count > 0)
+                                    {
+                                        <div class="mdc-tags">
+                                            @foreach (var tag in deckTags.Take(3))
+                                            {
+                                                <span class="mdc-tag">@tag</span>
+                                            }
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="mdc-archetype">DECK</div>
+                                    }
                                     <h3 class="mdc-name">@deck.Name</h3>
                                 </div>
                                 <button class="mdc-options"
                                         @onclick:stopPropagation="true"
-                                        title="Opções do deck">⋯</button>
+                                        @onclick="() => OpenCustomize(deck)"
+                                        title="Personalizar deck">⋯</button>
                             </div>
 
                             <div class="mdc-chips">
@@ -184,20 +227,15 @@
 
     string search = "";
     string sort = "updated";
+    string activeTag = "";
+    bool showCustomize;
+    Deck? customizeDeck;
+    Dictionary<string, DeckCoverPrefs> coverPrefsMap = new();
 
-    static readonly string[] Banners = new[]
-    {
-        "linear-gradient(135deg, #1e0b4d 0%, #5b21b6 50%, #4c1d95 100%)",
-        "linear-gradient(135deg, #3a0e08 0%, #dc2626 50%, #7c2d12 100%)",
-        "linear-gradient(135deg, #020617 0%, #1e3a8a 50%, #0c0a09 100%)",
-        "linear-gradient(135deg, #1a0a3c 0%, #fde68a 50%, #a78bfa 100%)",
-        "linear-gradient(135deg, #082f49 0%, #22d3ee 50%, #0e7490 100%)",
-        "linear-gradient(135deg, #052e16 0%, #16a34a 50%, #14532d 100%)",
-        "linear-gradient(135deg, #450a0a 0%, #dc2626 50%, #7f1d1d 100%)"
-    };
-
-    static string BannerGradient(string deckId) =>
-        Banners[Math.Abs(deckId.GetHashCode()) % Banners.Length];
+    IEnumerable<string> AllTags => coverPrefsMap.Values
+        .SelectMany(p => p.Tags)
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .OrderBy(t => t);
 
     IEnumerable<Deck> FilteredDecks
     {
@@ -205,7 +243,11 @@
         {
             var result = State.Decks.AsEnumerable();
             if (!string.IsNullOrWhiteSpace(search))
-                result = result.Where(d => d.Name.Contains(search, StringComparison.OrdinalIgnoreCase));
+                result = result.Where(d =>
+                    d.Name.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                    GetDeckTags(d.Id).Any(t => t.Contains(search, StringComparison.OrdinalIgnoreCase)));
+            if (!string.IsNullOrWhiteSpace(activeTag))
+                result = result.Where(d => GetDeckTags(d.Id).Contains(activeTag, StringComparer.OrdinalIgnoreCase));
             return sort == "name"
                 ? result.OrderBy(d => d.Name)
                 : result;
@@ -215,17 +257,50 @@
     protected override async Task OnInitializedAsync()
     {
         State.OnChange += StateHasChanged;
-
         if (State.Cards.Count == 0)
             await State.LoadCardsFromApiAsync(CardApiService);
-
         await State.LoadDecksFromApiAsync(DeckApiService);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadCoverPrefsAsync();
+            StateHasChanged();
+        }
     }
 
     public void Dispose() => State.OnChange -= StateHasChanged;
 
     void EditDeck(Deck d) => Nav.NavigateTo($"/decks/{d.Id}");
     void ViewDeck(Deck d) => Nav.NavigateTo($"/decks/{d.Id}/showcase");
+
+    void OpenCustomize(Deck d)
+    {
+        customizeDeck = d;
+        showCustomize = true;
+    }
+
+    async Task HandleCustomizeSaved()
+    {
+        await LoadCoverPrefsAsync();
+        StateHasChanged();
+    }
+
+    async Task LoadCoverPrefsAsync()
+    {
+        foreach (var deck in State.Decks)
+        {
+            try
+            {
+                if (!int.TryParse(deck.Id, out var deckId)) continue;
+                var p = await DeckPrefsApiService.GetPrefsAsync(deckId);
+                coverPrefsMap[deck.Id] = p;
+            }
+            catch { }
+        }
+    }
 
     async Task DeleteDeck(Deck d)
     {
@@ -234,4 +309,82 @@
         await State.DeleteDeckAsync(d, DeckApiService);
         StateHasChanged();
     }
+
+    List<Card> GetDistinctDeckCards(Deck deck) =>
+        deck.Cards
+            .Select(x => State.GetCard(x.Id))
+            .Where(c => c != null)
+            .Select(c => c!)
+            .GroupBy(c => c.Id)
+            .Select(g => g.First())
+            .ToList();
+
+    Card? GetFeaturedCard(Deck deck, List<Card> allCards)
+    {
+        if (coverPrefsMap.TryGetValue(deck.Id, out var prefs) && prefs.FeaturedCardId != null)
+            return allCards.FirstOrDefault(c => c.Id == prefs.FeaturedCardId);
+        return allCards.FirstOrDefault();
+    }
+
+    List<Card> GetFanCards(Deck deck, List<Card> allCards, string? featuredId)
+    {
+        if (coverPrefsMap.TryGetValue(deck.Id, out var prefs) && prefs.FanCardIds.Count > 0)
+            return prefs.FanCardIds
+                .Select(id => allCards.FirstOrDefault(c => c.Id == id))
+                .Where(c => c != null).Select(c => c!)
+                .Take(5).ToList();
+        return allCards.Where(c => c.Id != featuredId).Take(5).ToList();
+    }
+
+    bool IsFavorited(string deckId) =>
+        coverPrefsMap.TryGetValue(deckId, out var p) && p.IsFavorite;
+
+    string GetAttrGlowVars(string deckId)
+    {
+        if (!coverPrefsMap.TryGetValue(deckId, out var p) || string.IsNullOrEmpty(p.GlowAttribute))
+            return "";
+        var rgb = AttributeColorRgb(p.GlowAttribute);
+        return $"--attr-glow: rgba({rgb},0.65); --attr-glow-soft: rgba({rgb},0.12);";
+    }
+
+    static string AttributeColorRgb(string? attr) => attr switch
+    {
+        "Trevas" => "139,92,246",
+        "Luz"    => "250,204,21",
+        "Fogo"   => "239,68,68",
+        "Água"   => "34,211,238",
+        "Terra"  => "16,185,129",
+        "Vento"  => "134,239,172",
+        "Divino" => "212,166,74",
+        _        => "167,139,250"
+    };
+
+    async Task ToggleFavorite(Deck d)
+    {
+        var prefs = coverPrefsMap.GetValueOrDefault(d.Id) ?? new DeckCoverPrefs();
+        prefs.IsFavorite = !prefs.IsFavorite;
+        coverPrefsMap[d.Id] = prefs;
+        if (int.TryParse(d.Id, out var deckId))
+            await DeckPrefsApiService.SavePrefsAsync(deckId, prefs);
+        StateHasChanged();
+    }
+
+    string GetBanner(Deck deck)
+    {
+        if (!coverPrefsMap.TryGetValue(deck.Id, out var prefs) || !prefs.BannerIndex.HasValue)
+            return DeckCovers.BannerPresets[Math.Abs(deck.Id.GetHashCode()) % DeckCovers.BannerPresets.Length].Gradient;
+
+        var idx = prefs.BannerIndex.Value;
+        if (idx < DeckCovers.BannerPresets.Length)
+            return DeckCovers.BannerPresets[idx].Gradient;
+
+        var ci = idx - DeckCovers.BannerPresets.Length;
+        if (ci < prefs.CustomBannerImages.Count)
+            return $"url('{prefs.CustomBannerImages[ci]}') center / cover no-repeat";
+
+        return DeckCovers.BannerPresets[0].Gradient;
+    }
+
+    List<string> GetDeckTags(string deckId) =>
+        coverPrefsMap.TryGetValue(deckId, out var prefs) ? prefs.Tags : new();
 }

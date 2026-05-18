@@ -12,7 +12,7 @@
 
 @implements IDisposable
 
-<div class="app" style="@AccentStyle">
+<div class="app @(sidebarCollapsed ? "sidebar-collapsed" : "")" style="@AccentStyle">
     <aside class="sidebar">
         <div class="brand">
             <div class="brand-mark">
@@ -26,6 +26,14 @@
                 <div class="brand-name">DuelRecords</div>
                 <div class="brand-sub">Blazor</div>
             </div>
+        </div>
+
+        <div class="sidebar-collapse-row">
+            <button class="sidebar-collapse-btn"
+                    @onclick="() => sidebarCollapsed = !sidebarCollapsed"
+                    title="@(sidebarCollapsed ? "Expandir menu" : "Recolher menu")">
+                @(sidebarCollapsed ? "›" : "‹")
+            </button>
         </div>
 
         <nav class="nav">
@@ -80,6 +88,8 @@
 </div>
 
 @code {
+    private bool sidebarCollapsed;
+
     private string CurrentPath
     {
         get

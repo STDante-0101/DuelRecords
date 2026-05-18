@@ -38,6 +38,7 @@ public class CardFilters
     public string? Attribute { get; set; }
     public string? Level { get; set; }
     public string? Kind { get; set; }
+    public bool OnlyFavorites { get; set; }
 }
 
 public class FrameColor
@@ -106,4 +107,20 @@ public static class CardCatalog
             _ => 0,
         };
     }
+}
+
+public static class DeckCovers
+{
+    public static readonly (string Label, string Gradient)[] BannerPresets = new[]
+    {
+        ("Nebulosa",  "radial-gradient(circle at 30% 30%, rgba(167,139,250,.55), transparent 55%), radial-gradient(circle at 80% 70%, rgba(34,211,238,.35), transparent 60%), linear-gradient(120deg,#1a0f3d, #4c1d95 60%,#0a0612)"),
+        ("Forja",     "radial-gradient(circle at 30% 30%, rgba(251,146,60,.5), transparent 55%), radial-gradient(circle at 75% 80%, rgba(239,68,68,.35), transparent 60%), linear-gradient(120deg,#451a08,#7c2d12 55%,#0a0612)"),
+        ("Cripta",    "radial-gradient(circle at 30% 30%, rgba(139,92,246,.5), transparent 55%), radial-gradient(circle at 75% 80%, rgba(0,0,0,.5), transparent 60%), linear-gradient(120deg,#0a0312,#3a1670 55%,#0a0612)"),
+        ("Aurora",    "radial-gradient(circle at 30% 30%, rgba(253,230,138,.55), transparent 55%), radial-gradient(circle at 75% 80%, rgba(167,139,250,.45), transparent 60%), linear-gradient(120deg,#7c2d12,#a78bfa 55%,#0a0612)"),
+        ("Maré",      "radial-gradient(circle at 30% 30%, rgba(34,211,238,.5), transparent 55%), radial-gradient(circle at 75% 80%, rgba(14,116,144,.5), transparent 60%), linear-gradient(120deg,#082f49,#0e7490 55%,#0a0612)"),
+        ("Chamas",    "linear-gradient(135deg, #450a0a 0%, #dc2626 50%, #7f1d1d 100%)"),
+        ("Floresta",  "linear-gradient(135deg, #052e16 0%, #16a34a 50%, #14532d 100%)"),
+        ("Abismo",    "linear-gradient(135deg, #020617 0%, #1e3a8a 50%, #0c0a09 100%)"),
+        ("Dourado",   "linear-gradient(135deg, #1a0a3c 0%, #fde68a 50%, #a78bfa 100%)"),
+    };
 }
