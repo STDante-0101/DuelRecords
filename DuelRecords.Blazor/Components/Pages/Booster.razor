@@ -36,8 +36,9 @@
     static string RarityClass(string rarity) =>
         rarity.ToLower().Replace(" ", "-");
 
-    protected override void OnInitialized() => State.OnChange += StateHasChanged;
-    public void Dispose() => State.OnChange -= StateHasChanged;
+    protected override void OnInitialized() => State.OnChange += HandleStateChange;
+    public void Dispose() => State.OnChange -= HandleStateChange;
+    private void HandleStateChange() => InvokeAsync(StateHasChanged);
 
     protected override void OnParametersSet()
     {

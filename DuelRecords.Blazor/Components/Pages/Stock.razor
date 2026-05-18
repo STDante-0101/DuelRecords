@@ -90,6 +90,7 @@
     bool statsCollapsed;
     Card? openCard;
 
-    protected override void OnInitialized() => State.OnChange += StateHasChanged;
-    public void Dispose() => State.OnChange -= StateHasChanged;
+    protected override void OnInitialized() => State.OnChange += HandleStateChange;
+    public void Dispose() => State.OnChange -= HandleStateChange;
+    private void HandleStateChange() => InvokeAsync(StateHasChanged);
 }

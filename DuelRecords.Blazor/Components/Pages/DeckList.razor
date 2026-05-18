@@ -261,14 +261,16 @@
 
     protected override async Task OnInitializedAsync()
     {
-        State.OnChange += StateHasChanged;
+        State.OnChange += HandleStateChange;
         if (State.Cards.Count == 0)
             await State.LoadCardsFromApiAsync(CardApiService);
         await State.LoadDecksFromApiAsync(DeckApiService);
         await LoadCoverPrefsAsync();
     }
 
-    public void Dispose() => State.OnChange -= StateHasChanged;
+    public void Dispose() => State.OnChange -= HandleStateChange;
+
+    private void HandleStateChange() => InvokeAsync(StateHasChanged);
 
     void EditDeck(Deck d) => Nav.NavigateTo($"/decks/{d.Id}");
     void ViewDeck(Deck d) => Nav.NavigateTo($"/decks/{d.Id}/showcase");

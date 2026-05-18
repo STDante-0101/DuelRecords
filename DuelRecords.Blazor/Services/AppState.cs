@@ -145,9 +145,13 @@ public class AppState
     {
         if (!FavoriteIds.Remove(cardId))
             FavoriteIds.Add(cardId);
-        Notify(); // atualiza UI antes do await para manter o contexto de sincronização do Blazor
+        Notify();
         var json = System.Text.Json.JsonSerializer.Serialize(FavoriteIds.ToList());
-        await js.InvokeVoidAsync("localStorage.setItem", "dr_favorites", json);
+        try
+        {
+            await js.InvokeVoidAsync("localStorage.setItem", "dr_favorites", json);
+        }
+        catch { }
     }
 
     public void Notify()

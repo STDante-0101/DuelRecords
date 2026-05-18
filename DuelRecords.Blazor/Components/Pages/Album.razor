@@ -80,7 +80,8 @@
                 {
                     var card = c;
 
-                    <CardTile Card="card"
+                    <CardTile @key="card.Id"
+                              Card="card"
                               OnClick="() => OpenFocus(card)"
                               OnDetails="OpenCard"
                               Favorited="@State.IsFavorite(card.Id)"
@@ -225,7 +226,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        State.OnChange += StateHasChanged;
+        State.OnChange += HandleStateChange;
         await State.LoadCardsFromApiAsync(CardApiService);
         await State.LoadFavoritesAsync(JS);
     }
@@ -238,8 +239,10 @@
 
     public void Dispose()
     {
-        State.OnChange -= StateHasChanged;
+        State.OnChange -= HandleStateChange;
     }
+
+    private void HandleStateChange() => InvokeAsync(StateHasChanged);
 
     private void OpenRegisterModal()
     {
@@ -371,7 +374,11 @@
 
     private async Task ToggleFavorite(Card card)
     {
-        await State.ToggleFavoriteAsync(JS, card.Id);
+        try
+        {
+            await State.ToggleFavoriteAsync(JS, card.Id);
+        }
+        catch { }
     }
 
     private async Task OnRegisterModalClose()

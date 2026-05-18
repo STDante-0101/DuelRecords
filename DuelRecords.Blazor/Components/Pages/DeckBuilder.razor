@@ -25,7 +25,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        State.OnChange += StateHasChanged;
+        State.OnChange += HandleStateChange;
 
         await State.LoadCardsFromApiAsync(CardApiService);
         await State.LoadDecksFromApiAsync(DeckApiService);
@@ -35,8 +35,10 @@
 
     public void Dispose()
     {
-        State.OnChange -= StateHasChanged;
+        State.OnChange -= HandleStateChange;
     }
+
+    private void HandleStateChange() => InvokeAsync(StateHasChanged);
 
     protected override void OnParametersSet()
     {

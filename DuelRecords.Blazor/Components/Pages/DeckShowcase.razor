@@ -521,7 +521,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        State.OnChange += StateHasChanged;
+        State.OnChange += HandleStateChange;
 
         if (State.Cards.Count == 0)
             await State.LoadCardsFromApiAsync(CardApiService);
@@ -533,7 +533,9 @@ else
         ComputeStats();
     }
 
-    public void Dispose() => State.OnChange -= StateHasChanged;
+    public void Dispose() => State.OnChange -= HandleStateChange;
+
+    private void HandleStateChange() => InvokeAsync(StateHasChanged);
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
