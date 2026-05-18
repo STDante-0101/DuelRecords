@@ -37,6 +37,10 @@ else
             <div class="sc-back-row">
                 <button class="sc-back" @onclick='() => Nav.NavigateTo("/decks")'>‹</button>
                 <div class="sc-breadcrumb">Meus Decks · <b>Vitrine</b></div>
+                @if (!string.IsNullOrEmpty(prefsLoadError))
+                {
+                    <div style="font-size:11px;color:var(--crimson);margin-left:12px">@prefsLoadError</div>
+                }
             </div>
 
             <div class="sc-hero-actions">
@@ -395,6 +399,7 @@ else
     Card? focusedCard;
     bool showCustomize;
     DeckCoverPrefs coverPrefs = new();
+    string? prefsLoadError;
 
     List<Card> focusList = new();
     int focusIdx;
@@ -429,16 +434,16 @@ else
     {
         get
         {
-            if (deck == null) return Banners[0];
+            if (deck == null) return DeckCovers.BannerPresets[0].Gradient;
             if (!coverPrefs.BannerIndex.HasValue)
-                return BannerGradient(deck.Id);
+                return DeckCovers.BannerPresets[Math.Abs(deck.Id.GetHashCode()) % DeckCovers.BannerPresets.Length].Gradient;
             var idx = coverPrefs.BannerIndex.Value;
             if (idx < DeckCovers.BannerPresets.Length)
                 return DeckCovers.BannerPresets[idx].Gradient;
             var ci = idx - DeckCovers.BannerPresets.Length;
             if (ci < coverPrefs.CustomBannerImages.Count)
                 return $"url('{coverPrefs.CustomBannerImages[ci]}') center / cover no-repeat";
-            return BannerGradient(deck.Id);
+            return DeckCovers.BannerPresets[Math.Abs(deck.Id.GetHashCode()) % DeckCovers.BannerPresets.Length].Gradient;
         }
     }
 
@@ -461,17 +466,6 @@ else
         ? ((int)Math.Round(avgLevel)).ToString()
         : "—";
 
-    static readonly string[] Banners = new[]
-    {
-        "linear-gradient(135deg, #1e0b4d 0%, #5b21b6 50%, #4c1d95 100%)",
-        "linear-gradient(135deg, #3a0e08 0%, #dc2626 50%, #7c2d12 100%)",
-        "linear-gradient(135deg, #020617 0%, #1e3a8a 50%, #0c0a09 100%)",
-        "linear-gradient(135deg, #1a0a3c 0%, #fde68a 50%, #a78bfa 100%)",
-        "linear-gradient(135deg, #082f49 0%, #22d3ee 50%, #0e7490 100%)",
-        "linear-gradient(135deg, #052e16 0%, #16a34a 50%, #14532d 100%)",
-        "linear-gradient(135deg, #450a0a 0%, #dc2626 50%, #7f1d1d 100%)"
-    };
-
     static readonly Dictionary<string, string> KindColors = new()
     {
         ["Fusão"] = "#a78bfa",
@@ -480,9 +474,6 @@ else
         ["Link"] = "#5582f5",
         ["Ritual"] = "#5fa8ff"
     };
-
-    static string BannerGradient(string deckId) =>
-        Banners[Math.Abs(deckId.GetHashCode()) % Banners.Length];
 
     static string KindColor(string kind) =>
         KindColors.GetValueOrDefault(kind, "#888888");
@@ -556,12 +547,16 @@ else
     async Task LoadCoverPrefsAsync()
     {
         if (deck == null) return;
+        prefsLoadError = null;
         try
         {
             if (int.TryParse(deck.Id, out var deckId))
                 coverPrefs = await DeckPrefsApiService.GetPrefsAsync(deckId);
         }
-        catch { }
+        catch (Exception ex)
+        {
+            prefsLoadError = $"Erro ao carregar preferências: {ex.Message}";
+        }
         ApplyCoverPrefs();
     }
 

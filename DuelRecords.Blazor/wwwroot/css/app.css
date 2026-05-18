@@ -385,7 +385,7 @@ input, select, textarea { font-family: inherit; }
   position: relative;
   display: flex; flex-direction: column;
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: 4px;
   overflow: hidden;
   padding: 0;
   transition: transform 280ms cubic-bezier(.2,.7,.2,1), box-shadow 280ms ease, border-color 200ms ease;

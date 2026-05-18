@@ -16,22 +16,24 @@ public class DeckPrefsApiService : IDeckPrefsApiService
 
     public async Task<DeckCoverPrefs> GetPrefsAsync(int deckId)
     {
-        try
+        var response = await _http.GetAsync($"{_base}/api/deck-prefs/{deckId}");
+        if (!response.IsSuccessStatusCode)
         {
-            var dto = await _http.GetFromJsonAsync<DeckPrefsDto>($"{_base}/api/deck-prefs/{deckId}");
-            if (dto == null) return new();
-            return new DeckCoverPrefs
-            {
-                BannerIndex = dto.BannerIndex,
-                FeaturedCardId = dto.FeaturedCardId,
-                FanCardIds = dto.FanCardIds,
-                Tags = dto.Tags,
-                CustomBannerImages = dto.CustomBannerImages,
-                IsFavorite = dto.IsFavorite,
-                GlowAttribute = dto.GlowAttribute
-            };
+            var body = await response.Content.ReadAsStringAsync();
+            throw new HttpRequestException($"HTTP {(int)response.StatusCode}: {body}");
         }
-        catch { return new(); }
+        var dto = await response.Content.ReadFromJsonAsync<DeckPrefsDto>();
+        if (dto == null) return new();
+        return new DeckCoverPrefs
+        {
+            BannerIndex = dto.BannerIndex,
+            FeaturedCardId = dto.FeaturedCardId,
+            FanCardIds = dto.FanCardIds,
+            Tags = dto.Tags,
+            CustomBannerImages = dto.CustomBannerImages,
+            IsFavorite = dto.IsFavorite,
+            GlowAttribute = dto.GlowAttribute
+        };
     }
 
     public async Task SavePrefsAsync(int deckId, DeckCoverPrefs prefs)

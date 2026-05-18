@@ -39,6 +39,11 @@
         </div>
     </div>
 
+    @if (!string.IsNullOrEmpty(prefsLoadError))
+    {
+        <div style="font-size:14px;color:var(--crimson);padding:8px 16px;background:rgba(239,68,68,0.1);border-radius:6px;margin:8px 16px;word-break:break-all">@prefsLoadError</div>
+    }
+
     @if (State.Decks.Count > 0)
     {
         <div class="decks-toolbar">
@@ -288,8 +293,11 @@
         StateHasChanged();
     }
 
+    string? prefsLoadError;
+
     async Task LoadCoverPrefsAsync()
     {
+        prefsLoadError = null;
         foreach (var deck in State.Decks)
         {
             try
@@ -298,7 +306,10 @@
                 var p = await DeckPrefsApiService.GetPrefsAsync(deckId);
                 coverPrefsMap[deck.Id] = p;
             }
-            catch { }
+            catch (Exception ex)
+            {
+                prefsLoadError = $"Erro ao carregar preferências: {ex.Message}";
+            }
         }
     }
 
