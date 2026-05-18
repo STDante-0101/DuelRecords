@@ -284,19 +284,19 @@
     private async Task PreviousPage()
     {
         page = Math.Max(1, page - 1);
-        await JS.InvokeVoidAsync("duelRecords.scrollPageToTop");
+        try { await JS.InvokeVoidAsync("duelRecords.scrollPageToTop"); } catch { }
     }
 
     private async Task NextPage(int totalPages)
     {
         page = Math.Min(totalPages, page + 1);
-        await JS.InvokeVoidAsync("duelRecords.scrollPageToTop");
+        try { await JS.InvokeVoidAsync("duelRecords.scrollPageToTop"); } catch { }
     }
 
     private async Task GoToPage(int p)
     {
         page = p;
-        await JS.InvokeVoidAsync("duelRecords.scrollPageToTop");
+        try { await JS.InvokeVoidAsync("duelRecords.scrollPageToTop"); } catch { }
     }
 
     private void OnFiltersChanged(CardFilters f)
